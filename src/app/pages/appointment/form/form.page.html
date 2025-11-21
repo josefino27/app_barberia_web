@@ -1,0 +1,98 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>
+      {{ isViewing ? 'Editar Cita' : 'Agendar Cita' }}
+    </ion-title>
+    <ion-buttons slot="end">
+      <ion-back-button defaultHref="/appointment"></ion-back-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <form [formGroup]="appointmentForm" (ngSubmit)="onSubmit()">
+    <ion-item>
+      <ion-label position="floating">Barbero</ion-label>
+      <ion-select interface="modal" formControlName="barber">
+        <ion-select-option value="barbero-A">Barbero A</ion-select-option>
+        <ion-select-option value="barbero-B">Barbero B</ion-select-option>
+        <ion-select-option value="barbero-C">Barbero C</ion-select-option>
+      </ion-select>
+    </ion-item>
+
+    <ion-item>
+      <ion-label position="floating">Servicio</ion-label>
+      <ion-select interface="modal" formControlName="service">
+        <ion-select-option value="corte-hombre">Corte Hombre</ion-select-option>
+        <ion-select-option value="arreglo-barba">Arreglo de Barba</ion-select-option>
+        <ion-select-option value="tinte">Tinte de Cabello</ion-select-option>
+      </ion-select>
+    </ion-item>
+    @if (isViewing) {
+    <ion-item>
+      <ion-label position="stacked">Fecha y Hora Actual de la Cita</ion-label>
+      <h2>{{ formattedAppointmentDate }}</h2>
+    </ion-item>
+    <ion-item>
+      <ion-button expand="full" (click)="isViewing = false; resetSelection()">
+        <ion-icon name="calendar" slot="start"></ion-icon>
+        Cambiar Fecha y Hora
+      </ion-button>
+    </ion-item>
+    }@else {
+    <ion-item>
+      <ion-label position="floating">Elige el Día</ion-label>
+      <ion-select interface="modal" [value]="selectedDate?.toISOString()" (ionChange)="onDaySelected($event)">
+        @for (day of days; track day.date) {
+        <ion-select-option [value]="day.date.toISOString()">{{ day.label }}</ion-select-option>
+        }
+      </ion-select>
+    </ion-item>
+    }
+
+
+
+    @if (selectedDate && availableHours.length > 0 && !isViewing) {
+    <ion-item>
+      <ion-label position="floating">Elige la Hora</ion-label>
+      <ion-select interface="modal" [value]="selectedHour" (ionChange)="onHourSelected($event)">
+        @for (hour of availableHours; track hour) {
+        <ion-select-option [value]="hour">{{ hour }}</ion-select-option>
+        }
+      </ion-select>
+    </ion-item>
+    } @else if (selectedDate && !isViewing) {
+    <ion-card>
+      <ion-card-content>
+        No hay horas disponibles para este día.
+      </ion-card-content>
+    </ion-card>
+    }
+
+    <ion-item>
+      <ion-label position="floating">{{user?.name}}</ion-label>
+      <ion-input type="text" formControlName="clientName" readonly></ion-input>
+    </ion-item>
+    <ion-item>
+      <ion-label position="floating">{{user?.email}}</ion-label>
+      <ion-input type="text" formControlName="clientEmail" readonly></ion-input>
+    </ion-item>
+    <ion-item>
+      <ion-label position="floating">{{user?.phone}}</ion-label>
+      <ion-input type="tel" formControlName="clientPhone" ></ion-input>
+    </ion-item>
+
+    @if(errorMessage){
+    <div class="ion-padding-top ion-padding-bottom">
+      <ion-note color="danger">{{ errorMessage }}</ion-note>
+    </div>
+    }
+    @if(isViewing){
+    <ion-button expand="full" type="submit" [disabled]="!appointmentForm.valid">Actualizar Cita</ion-button>
+    <ion-button expand="full" type="button" (click)="deleteAppointment()">Cancelar Cita</ion-button>
+    } @else {
+    <ion-button expand="full" type="submit" [disabled]="!appointmentForm.valid || !selectedHour">Agendar
+      Cita</ion-button>
+    }
+  </form>
+</ion-content>

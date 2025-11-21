@@ -1,0 +1,7 @@
+{
+  "name": "app_barberia_web",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "angular"
+}

@@ -1,0 +1,69 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/usuarios"></ion-back-button>
+
+      <ion-button defaultHref="/usuarios">
+        <ion-title>
+          {{ isViewing ? 'Editar Usuario' : 'Agregar Usuario' }}
+        </ion-title>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <form class="form" [formGroup]="userForm" (ngSubmit)="onSubmit()">
+
+    <ion-item>
+
+      <ion-input placeholder="Ingresa tu nombre completo" class="formControl" id="Nombre" type="text"
+        formControlName="name" />
+
+    </ion-item>
+    <ion-item>
+
+      <ion-input class="formControl" id="Celular" placeholder="Ingresa tu numero de celular" type="tel"
+        formControlName="phone" error="required" message="Error, ingresa un telefono" />
+
+    </ion-item>
+    <ion-item>
+
+      <ion-select cancelText="Cerrar" label="Selecciona un rol" label-placement="floating" class="formControl" id="Rol"
+        formControlName="role">
+
+        @if(user?.role === 'super_admin'){
+        <ion-select-option selected aria-selected="true" value="super_admin">Super Admin</ion-select-option>
+        <ion-select-option value="admin">Admin</ion-select-option>
+        }
+        <ion-select-option value="client">User</ion-select-option>
+      </ion-select>
+
+    </ion-item>
+    <ion-item>
+      @if(user?.role != 'super_admin'){
+      <ion-input class="formControl" placeholder="Ingresa tu correo electronico" id="Email" type="email"
+        formControlName="email" readonly />
+      }@else{
+      <ion-input class="formControl" placeholder="Ingresa tu correo electronico" id="Email" type="email"
+        formControlName="email"/>
+      }
+
+
+
+    </ion-item>
+    <ion-item>
+      <ion-button type="submit" fill="outline" expand="block" [disabled]="userForm.invalid">
+        <ion-icon slot="icon-only" ios="logo-apple" md="add-circle-outline"></ion-icon>
+        {{ isViewing ? 'Editar Usuario' : 'Agregar Usuario' }}
+      </ion-button>
+      @if(user?.role === 'super_admin'){
+      <ion-button (click)="deleteUser()" color="danger">
+        <ion-icon name="trash" slot="icon-only" ios="logo-apple" md="trash">
+        </ion-icon> Eliminar Usuario
+      </ion-button>
+      }
+    </ion-item>
+  </form>
+
+</ion-content>

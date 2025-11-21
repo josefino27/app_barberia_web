@@ -1,0 +1,51 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-title>Agendar Cita</ion-title>
+    <ion-buttons slot="end">
+      <ion-back-button defaultHref="/usuarios"></ion-back-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <ion-header collapse="condense">
+    <ion-toolbar>
+      <ion-title size="large">Elige el día</ion-title>
+    </ion-toolbar>
+  </ion-header>
+
+  <ion-list-header>
+    <ion-label>Día</ion-label>
+  </ion-list-header>
+
+  <ion-list lines="full">
+    @for (day of days; track day.date) {
+      <ion-item (click)="selectDay(day)" [color]="selectedDate && selectedDate.getDate() === day.date.getDate() ? 'primary' : ''">
+        <ion-label>{{ day.label }}</ion-label>
+      </ion-item>
+    }
+  </ion-list>
+  <br>
+
+  @if (availableHours.length > 0) {
+    <ion-card>
+      <ion-card-header>
+        <ion-card-title>Horas Disponibles</ion-card-title>
+        <ion-card-subtitle>{{ selectedDate | date:'fullDate' }}</ion-card-subtitle>
+      </ion-card-header>
+      <ion-card-content>
+        @for (hour of availableHours; track hour) {
+          <ion-chip (click)="selectHour(hour)" [outline]="selectedHour !== hour" [color]="selectedHour === hour ? 'primary' : ''">
+            <ion-label>{{ hour }}</ion-label>
+          </ion-chip>
+        }
+      </ion-card-content>
+    </ion-card>
+  } @else if (selectedDate) {
+    <ion-card>
+      <ion-card-content>
+        No hay horas disponibles para este día.
+      </ion-card-content>
+    </ion-card>
+  }
+</ion-content>

@@ -1,0 +1,16 @@
+ion-select.custom-select-modal::part(placeholder) {
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.select-interface .ion-list {
+  /* Arreglo para el scroll del modal */
+  overflow-y: auto !important;
+  max-height: 100% !important;
+}
+
+/* Opcional: Esto también puede ayudar */
+.popover-content {
+  overflow-y: auto !important;
+}

@@ -1,0 +1,116 @@
+<ion-header class="shadow-sm">
+  <ion-toolbar color="primary">
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/usuarios"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Agenda de Citas</ion-title>
+    <ion-buttons slot="end">
+      <ion-button routerLink="/appointment/form">
+        <ion-icon name="add-circle-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding bg-light">
+
+  <div class="container py-4">
+
+    <div class="row mb-4">
+      <div class="col-12">
+        <ion-searchbar placeholder="Buscar por nombre de cliente" (ionChange)="onSearchChange($event)" debounce="300"
+          class="form-control p-0 border-0 shadow-none" style="--box-shadow: none;"></ion-searchbar>
+      </div>
+    </div>
+
+    <div class="row mb-4">
+      <div class="col-12 d-flex align-items-center gap-2">
+        <ion-label>Filtrar por fecha:</ion-label>
+
+        <ion-datetime-button datetime="datetime"></ion-datetime-button>
+
+        <!-- Botón para limpiar el filtro dentro del modal -->
+        <div class="ion-padding-top ion-text-center">
+          <ion-button fill="clear" color="danger" (click)="clearDateFilter()">
+            <ion-icon name="close-circle-outline" slot="start"></ion-icon>
+            Limpiar Filtro
+          </ion-button>
+        </div>
+
+        <ion-modal [keepContentsMounted]="true">
+          <ng-template>
+            <ion-datetime id="datetime" presentation="date" [(ngModel)]="dateModel" (ionChange)="onDateChange($event)"
+              [min]="getToday()" [showDefaultButtons]="false">
+            </ion-datetime>
+          </ng-template>
+        </ion-modal>
+      </div>
+    </div>
+
+    @if ((filteredAppointments$ | async)?.length === 0 && !isLoading) {
+    <ion-card class="shadow-sm border-dashed">
+      <ion-card-content>
+        <p class="text-center text-secondary">No hay citas agendadas que coincidan con el filtro.</p>
+      </ion-card-content>
+    </ion-card>
+    }
+
+    <ion-list lines="full">
+      @for (appointment of filteredAppointments$ | async; track appointment.id)
+      {
+
+      <ion-item class="mb-2 shadow-sm rounded-3">
+
+        <ion-icon slot="start" name="cut-outline" color="primary"></ion-icon>
+
+        <ion-label>
+          <h3>{{ appointment.clientName }}</h3>
+          <p>Servicio: {{ appointment.service }} con {{ appointment.barber }}</p>
+          <p>Fecha y hora: {{ appointment.date | date:'medium' }}</p>
+          <p>Estado: {{ appointment.status }}</p>
+        </ion-label>
+
+        <ion-buttons slot="end">
+          <ion-button  fill="clear" color="warning" (click)="editAppointment(appointment.id!)" title="Editar">
+            <ion-icon name="create-outline"></ion-icon>
+          </ion-button>
+          <ion-button  fill="clear" color="danger" (click)="presentAlertMultipleButtons(appointment.id!)"
+            title="Eliminar">
+            <ion-icon name="trash-outline"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+
+      </ion-item>
+
+      }
+    </ion-list>
+  </div>
+
+
+
+  <!-- <div *ngIf="confirmDeleteId" class="modal d-block" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+      <div class="modal-content rounded-3 shadow-lg">
+        <div class="modal-header bg-danger text-white border-bottom-0">
+          <h5 class="modal-title">Confirmar Eliminación</h5>
+          <button type="button" class="btn-close btn-close-white" aria-label="Close" (click)="cancelDelete()"></button>
+        </div>
+        <div class="modal-body p-4">
+          <p class="mb-3">¿Estás seguro de que deseas eliminar esta cita? Esta acción no se puede deshacer.</p>
+          <div *ngIf="isDeleting" class="d-flex align-items-center justify-content-center text-danger">
+            <ion-spinner name="dots" class="me-2"></ion-spinner>
+            <p class="mb-0 fw-bold">Eliminando...</p>
+          </div>
+        </div>
+        <div class="modal-footer border-top-0 justify-content-between">
+          <button type="button" class="btn btn-secondary" (click)="cancelDelete()"
+            [disabled]="isDeleting">Cancelar</button>
+          <button type="button" class="btn btn-danger" (click)="confirmDelete()" [disabled]="isDeleting">
+            <ion-icon name="trash-outline" class="me-1"></ion-icon>
+            Eliminar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div> -->
+</ion-content>
