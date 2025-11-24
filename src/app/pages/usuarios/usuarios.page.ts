@@ -48,8 +48,9 @@ export class UsuariosPage implements OnInit {
   }
   async goToEdit(id: User['id']) {
     this.popover.isOpen = false;
-    this.isOpen = false;
+    
     this.r.navigate([`form/${id}`], { relativeTo: this.route });
+    console.log('id enviado: ', id);
   }
 
   

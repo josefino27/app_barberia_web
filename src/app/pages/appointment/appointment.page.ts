@@ -52,7 +52,7 @@ export class AppointmentsPage implements OnInit, OnDestroy {
 
   // Lista de todos los barberos para los filtros de SuperAdmin
   public allBarbers: string[] = [];
-
+  public filtered: AppointmentModel[] = [];
   // Propiedad para el ion-datetime (modelo de la fecha)
   public dateModel: string | undefined;
 
@@ -60,8 +60,7 @@ export class AppointmentsPage implements OnInit, OnDestroy {
     private afs: FirestoreService,
     private r: Router,
     private route: ActivatedRoute,
-    private authService: AuthService,
-    private alertController: AlertController
+    private authService: AuthService
   ) { }
 
   async ngOnInit() {
@@ -85,7 +84,7 @@ export class AppointmentsPage implements OnInit, OnDestroy {
       this.userRole = user || null ;
       this.currentUserName = user?.name || user?.barberName || 'Usuario Invitado';
 
-      console.log(`Citas cargando para Rol: ${this.userRole?.role}, Nombre: ${this.currentUserName}`);
+      console.log(`Citas cargando para Rol: ${this.userRole?.role}, Nombre: ${this.currentUserName}, Correo: ${this.userRole?.email}`);
 
       // 🔑 2. INICIAR LA CARGA DE CITAS EN TIEMPO REAL y Filtrado por Rol
       this.loadLiveAppointments(this.userRole, this.currentUserName);
@@ -105,12 +104,12 @@ export class AppointmentsPage implements OnInit, OnDestroy {
 
     // Obtener la fuente de citas en tiempo real (ya filtradas por rol/nombre en el servicio)
     const liveAppointments$ = this.afs.getAppointmentsByRoleLive(role!, userName);
-
+    
     // Suscribirse a la fuente de Citas
     const liveSub = liveAppointments$.subscribe(appointments => {
       // Cada vez que Firestore cambia, se actualiza este array en memoria
       this.allAppointments = appointments;
-
+      console.log("fuente de citas: ", this.allAppointments);
       // Si es Super Admin, debemos cargar la lista de todos los barberos para los filtros
       if (role?.role === 'super_admin') {
         const uniqueBarbers = [...new Set(appointments.map(a => a.barber))];
@@ -122,6 +121,7 @@ export class AppointmentsPage implements OnInit, OnDestroy {
       } else {
         // Si no es Super Admin, solo ve su nombre como filtro
         this.allBarbers = [userName];
+        console.log("allBarbers: ", this.allBarbers);
         if (this.selectedBarbersSubject.value.length === 0) {
           this.selectedBarbersSubject.next([userName]);
         }
@@ -142,16 +142,27 @@ export class AppointmentsPage implements OnInit, OnDestroy {
       this.selectedDateSubject.asObservable()
     ]).pipe(
       map(([selectedBarbers, searchTerm, selectedDate]) => {
-
-        // 1. Filtrado por Barbero
-        let filtered = this.allAppointments.filter(
+        // 1. Todas las citas (super_admin)
+        if(this.userRole?.role === 'super_admin'){
+          this.filtered = this.allAppointments;
+        }
+        if(this.userRole?.role === 'admin'){
+          this.filtered = this.allAppointments.filter(
           (appointment) => selectedBarbers.includes(appointment.barber)
         );
+        }
+        if(this.userRole?.role === 'client'){
+          this.filtered = this.allAppointments.filter(
+          (appointment) => selectedBarbers.includes(appointment.clientName)
+        );
 
+        }
+        
+        console.log("Filtrado username | barber too: ", this.filtered);
         // 2. Filtrado por Término de Búsqueda (Nombre de Cliente)
         if (searchTerm) {
           const lowerSearchTerm = searchTerm.toLowerCase();
-          filtered = filtered.filter(
+          this.filtered = this.filtered.filter(
             (appointment) => appointment.clientName.toLowerCase().includes(lowerSearchTerm)
           );
         }
@@ -166,7 +177,7 @@ export class AppointmentsPage implements OnInit, OnDestroy {
           const endOfDay = new Date(selectedDate);
           endOfDay.setHours(23, 59, 59, 999);
 
-          filtered = filtered.filter(appointment => {
+          this.filtered = this.filtered.filter(appointment => {
             // Asegurarse de que appointment.date es un objeto Date
             const appointmentDate = appointment.date instanceof Date ? appointment.date : new Date(appointment.date);
 
@@ -176,7 +187,7 @@ export class AppointmentsPage implements OnInit, OnDestroy {
         }
 
         // Devolver las citas filtradas y ordenarlas por fecha ascendente
-        return filtered.sort((a, b) => {
+        return this.filtered.sort((a, b) => {
           const dateA = a.date instanceof Date ? a.date.getTime() : new Date(a.date).getTime();
           const dateB = b.date instanceof Date ? b.date.getTime() : new Date(b.date).getTime();
           return dateA - dateB;
@@ -283,41 +294,7 @@ export class AppointmentsPage implements OnInit, OnDestroy {
     }
   }
 
-  async presentAlertMultipleButtons(id: string) {
-    const alert = await this.alertController.create({
-      cssClass: 'alert-buttons',
-      header: 'Alert with multiple button',
-      backdropDismiss: false,
-      message: `This is an alert message.`,
-      buttons: [
-
-        {
-          text: 'Cancel',
-          role: 'cancel',
-          cssClass: 'modal-button-cancel',
-          handler: (blah) => {
-            console.log('Cancelar');
-          }
-        }, {
-          text: 'Okay',
-          handler: () => {
-            try {
-              // Llama al método de eliminación del servicio
-              this.afs.deleteAppointmentById(id);
-              console.log(`Cita ${id} eliminada.`);
-              // Opcional: mostrar un Toast de éxito
-
-            } catch (error) {
-              console.error('Fallo al eliminar la cita:', error);
-              // Opcional: mostrar un Toast de error
-
-            }
-          }
-        }
-      ]
-    });
-    await alert.present();
-  }
+  
 
 
   // 4. Limpieza de Suscripciones (MANDATORIO)

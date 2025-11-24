@@ -26,7 +26,7 @@
                   <ion-button fill="outline" expand="full" (click)="goToAppointment(user.id)">Citas</ion-button>
                 </ion-col>
               </ion-row>
-              @if(user.role === 'admin' || user.role === 'super-admin'){
+              @if(user.role === 'admin' || user.role === 'super_admin'){
               <ion-row>
                 <ion-col>
                   <ion-button fill="outline" expand="full" (click)="goToSchedule(user.id)">Horarios</ion-button>

@@ -70,15 +70,15 @@
     }
 
     <ion-item>
-      <ion-label position="floating">{{user?.name}}</ion-label>
-      <ion-input type="text" formControlName="clientName" readonly></ion-input>
+      <ion-label position="floating">Nombre</ion-label>
+      <ion-input type="text" formControlName="clientName" ></ion-input>
     </ion-item>
     <ion-item>
-      <ion-label position="floating">{{user?.email}}</ion-label>
-      <ion-input type="text" formControlName="clientEmail" readonly></ion-input>
+      <ion-label position="floating">Email</ion-label>
+      <ion-input type="text" formControlName="clientEmail" ></ion-input>
     </ion-item>
     <ion-item>
-      <ion-label position="floating">{{user?.phone}}</ion-label>
+      <ion-label position="floating">Celular</ion-label>
       <ion-input type="tel" formControlName="clientPhone" ></ion-input>
     </ion-item>
 
@@ -89,7 +89,7 @@
     }
     @if(isViewing){
     <ion-button expand="full" type="submit" [disabled]="!appointmentForm.valid">Actualizar Cita</ion-button>
-    <ion-button expand="full" type="button" (click)="deleteAppointment()">Cancelar Cita</ion-button>
+    <ion-button expand="full" type="button" (click)="presentAlertMultipleButtons(this.appointmentId!)">Cancelar Cita</ion-button>
     } @else {
     <ion-button expand="full" type="submit" [disabled]="!appointmentForm.valid || !selectedHour">Agendar
       Cita</ion-button>

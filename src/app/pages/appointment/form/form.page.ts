@@ -1,7 +1,7 @@
 import { Component, EnvironmentInjector, inject, OnInit, runInInjectionContext } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormGroup, FormBuilder, Validators } from '@angular/forms';
-import { IonicModule, IonModal, IonDatetime, IonDatetimeButton, IonPicker, IonButton } from '@ionic/angular';
+import { IonicModule, IonModal, IonDatetime, IonDatetimeButton, IonPicker, IonButton, AlertController } from '@ionic/angular';
 import { AppointmentModel } from 'src/app/interfaces/appointment-model';
 import { FirestoreService } from 'src/app/services/firestore';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
@@ -21,14 +21,14 @@ import { AuthService } from 'src/app/services/auth';
 })
 export class AppointmentFormPage implements OnInit {
 
-  appointmentForm: FormGroup;
+  appointmentForm!: FormGroup;
   today: string;
   oneWeekFromNow: string;
   appointmentId: string | null = null;
   formattedAppointmentDate: string | null = null;
   isViewing: boolean = false;
   errorMessage: string | null = null;
-  
+
   days: { label: string, date: Date }[] = [];
   availableHours: string[] = [];
   selectedDate: Date | null = null;
@@ -73,9 +73,11 @@ export class AppointmentFormPage implements OnInit {
     private firestoreService: FirestoreService,
     private activatedRoute: ActivatedRoute,
     private router: Router,
-    private afauth: AuthService
+    private afauth: AuthService,
+    private alertController: AlertController
   ) {
-
+    // Asegura que el FormGroup SIEMPRE esté definido antes de que el HTML se renderice
+    this.initializeForm();
     // Configuración de las fechas
     const today = new Date();
     const oneWeekFromNow = new Date();
@@ -84,22 +86,31 @@ export class AppointmentFormPage implements OnInit {
     this.today = today.toISOString();
     this.oneWeekFromNow = oneWeekFromNow.toISOString();
 
+  }
+
+  // Método para encapsular la inicialización del formulario
+  initializeForm() {
     this.appointmentForm = this.formBuilder.group({
-      service: ['', Validators.required],
       barber: ['', Validators.required],
-      date: [''],
-      clientEmail: ['', [Validators.required, Validators.minLength(10), Validators.email]],
+      service: ['', Validators.required],
+      date: [null, Validators.required],
       clientName: ['', Validators.required],
+      clientEmail: ['', [Validators.required, Validators.email]],
+      clientPhone: ['', Validators.required],
     });
   }
 
   private readonly injector = inject(EnvironmentInjector);
   ngOnInit() {
 
-    runInInjectionContext(this.injector, async() => {
+    runInInjectionContext(this.injector, async () => {
+
+      // 1. Obtener ID de la ruta (sincrono)
       this.appointmentId = this.activatedRoute.snapshot.paramMap.get('id');
       console.log("CITAId", this.appointmentId);
       console.log("user", this.afauth.getCurrentUser);
+
+
       const userData = await this.afauth.getCurrentUser();
       this.user = userData;
       console.log("Usuario actual en form cita: ", this.user?.name);
@@ -110,11 +121,51 @@ export class AppointmentFormPage implements OnInit {
         this.loadAppointmentForm(this.appointmentId);
       } else {
         this.generateNext7Days();
+
         // Escuchamos los cambios en el servicio solo si es una nueva cita
         this.listenToFormChanges();
+
+        // Si es una nueva cita, inicializa los valores del usuario actual
+        this.patchUserInForm();
       }
     });
 
+  }
+
+  async presentAlertMultipleButtons(id: string) {
+    const alert = await this.alertController.create({
+      cssClass: 'alert-buttons',
+      header: 'Eliminar Cita',
+      backdropDismiss: false,
+      message: `¿Estas seguro que deseas eliminar esta cita?`,
+      buttons: [
+
+        {
+          text: 'Cancel',
+          role: 'cancel',
+          cssClass: 'modal-button-cancel',
+          handler: (blah) => {
+            console.log('Cancelar');
+          }
+        }, {
+          text: 'Okay',
+          handler: () => {
+            try {
+              // Llama al método de eliminación del servicio
+              this.firestoreService.deleteAppointmentById(id);
+              this.router.navigate(['/appointment']);
+              // Opcional: mostrar un Toast de éxito
+
+            } catch (error) {
+              console.error('Fallo al eliminar la cita:', error);
+              // Opcional: mostrar un Toast de error
+
+            }
+          }
+        }
+      ]
+    });
+    await alert.present();
   }
 
   private listenToFormChanges() {
@@ -143,6 +194,17 @@ export class AppointmentFormPage implements OnInit {
             this.loadAvailableHours();
           }
         });
+    }
+  }
+
+  // Parchea los datos del usuario en el formulario
+  patchUserInForm() {
+    if (this.user) {
+      this.appointmentForm.patchValue({
+        clientName: this.user.name,
+        clientEmail: this.user.email,
+        clientPhone: this.user.phone
+      });
     }
   }
 
@@ -348,6 +410,9 @@ export class AppointmentFormPage implements OnInit {
     const userDocRef = await this.firestoreService.getAppointmentById(id);
 
     if (userDocRef && userDocRef.date instanceof Date) {
+
+      // Parchear valores en el FormGroup INICIALIZADO en el constructor.
+      this.appointmentForm.patchValue(userDocRef);
       // 1. Establece el barbero y el servicio de la cita
       // Esto es crucial para que los selectores se muestren correctamente
       this.selectedBarber = userDocRef.barber;
@@ -378,12 +443,12 @@ export class AppointmentFormPage implements OnInit {
     }
   }
 
-  async deleteAppointment() {
-    const user = await this.firestoreService
-      .deleteAppointmentById(this.appointmentId);
-    this.router.navigate(['/appointment']);
+  // async deleteAppointment() {
+  //   const user = await this.firestoreService
+  //     .deleteAppointmentById(this.appointmentId);
+  //   this.router.navigate(['/appointment']);
 
-  }
+  // }
 
 
   ngOnDestroy() {

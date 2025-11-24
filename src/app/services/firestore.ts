@@ -6,6 +6,8 @@ import { User } from '../interfaces/user';
 import { AppointmentModel } from '../interfaces/appointment-model';
 import { Barber } from '../interfaces/barber';
 import { Service } from '../interfaces/service';
+import { AngularFireAuth } from '@angular/fire/compat/auth';
+import { AuthService } from './auth';
 
 @Injectable({
   providedIn: 'root'
@@ -30,7 +32,10 @@ export class FirestoreService {
   readonly barbers$ = this._barbers.asObservable();
   readonly services$ = this._services.asObservable();
 
-  constructor(private readonly afs: AngularFirestore) {
+  constructor(
+    private readonly afs: AngularFirestore,
+    private readonly afa: AngularFireAuth,
+  ) {
     // Inicializa las conexiones a las colecciones
     this.usersCollection = this.afs.collection<User>('users');
     this.appointmentsCollection = this.afs.collection<AppointmentModel>('appointments');
@@ -207,16 +212,16 @@ export class FirestoreService {
   async setUsers(uid: string, data: User): Promise<void> {
     try {
 
-      return runInInjectionContext(this.injector, async() => { 
-      //const docRef = await this.usersCollection.add(user);
-      // Usamos .doc(uid) para establecer el UID como la clave del documento.
-      // set(data, { merge: true }) asegura que se cree si no existe o se actualice si ya existe.
-      const docRef = await this.usersCollection.doc(uid).set(data, { merge: true });
-      console.log('Usuario añadido con ID: ', data.id);
+      return runInInjectionContext(this.injector, async () => {
+        //const docRef = await this.usersCollection.add(user);
+        // Usamos .doc(uid) para establecer el UID como la clave del documento.
+        // set(data, { merge: true }) asegura que se cree si no existe o se actualice si ya existe.
+        const docRef = await this.usersCollection.doc(uid).set(data, { merge: true });
+        console.log('Usuario añadido con ID: ', data.id);
 
 
-      });  
-      
+      });
+
 
     } catch (error) {
       console.error('Error al añadir usuario: ', error);
@@ -284,11 +289,30 @@ export class FirestoreService {
 
   async deleteUserById(id: any): Promise<void> {
 
-    runInInjectionContext(this.injector, () => {
+    runInInjectionContext(this.injector, async () => {
+      try {
+        const userDocRef = this.afs.doc<User>(`users/${id}`);
+        userDocRef.delete();
+        const userAuth = await this.afa.currentUser;
+        
+        if (userAuth) {
+          await userAuth?.delete();
+          console.log('Usuario eliminado firestore');
+          console.log("firebaseauth user eliminado");
+        } else {
+          console.log('Eror: Usuario No puede ser eliminado');
+          return;
 
-      const userDocRef = this.afs.doc<User>(`users/${id}`);
-      userDocRef.delete();
-      console.log('Usuario actualizado con ID: ', id);
+        }
+      } catch (error: any) {
+        if (error.code === 'auth/requires-recent-login') {
+          console.error('Re-authentication required before deleting the account.');
+          // Prompt the user to re-authenticate, then retry the deletion
+        } else {
+          console.error('Error deleting user:', error);
+        }
+      }
+
     });
   }
   async deleteAppointmentById(id: any): Promise<void> {
@@ -297,6 +321,7 @@ export class FirestoreService {
 
       const userDocRef = this.afs.doc<User>(`appointments/${id}`);
       userDocRef.delete();
+
       console.log('Cita eliminada con ID: ', id);
     });
   }

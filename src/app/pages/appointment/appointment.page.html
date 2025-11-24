@@ -1,3 +1,58 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-button defaultHref="/usuarios">
+        <ion-title>Citas</ion-title>
+      </ion-button>
+    </ion-buttons>
+    <ion-buttons slot="end">
+      @if (userRole){
+      <!-- <ion-button fill="clear" aria-label="User profile" (click)="presentPopover($event)" slot="end">
+        <ion-avatar>
+          <img [src]="userRole.photoUrl || 'assets/default-avatar.png'">
+        </ion-avatar>
+      </ion-button> -->
+      <!-- <ion-popover #popover [isOpen]="isOpen" (didDismiss)="isOpen = false"> -->
+      <ng-template>
+        <ion-content>
+          <ion-grid>
+            <ion-row>
+              <ion-col>
+                <!-- <ion-button fill="outline" expand="full" (click)="goToEdit(user.id)">Perfil</ion-button> -->
+              </ion-col>
+            </ion-row>
+            <ion-row>
+              <ion-col>
+                <!-- <ion-button fill="outline" expand="full" (click)="goToAppointment(user.id)">Citas</ion-button> -->
+              </ion-col>
+            </ion-row>
+            @if(userRole.role === 'admin' || userRole.role === 'super_admin'){
+            <ion-row>
+              <ion-col>
+                <!-- <ion-button fill="outline" expand="full" (click)="goToSchedule(user.id)">Horarios</ion-button> -->
+              </ion-col>
+            </ion-row>
+            }
+            <ion-row>
+              <ion-col>
+                <!-- <ion-button fill="solid" expand="block" (click)="logout()"> -->
+                <ion-icon name="power-outline">
+
+                </ion-icon>
+
+                <!-- Cerrar Sesión</ion-button> -->
+              </ion-col>
+            </ion-row>
+          </ion-grid>
+        </ion-content>
+      </ng-template>
+      <!-- </ion-popover> -->
+      }
+    </ion-buttons>
+
+  </ion-toolbar>
+</ion-header>
+
 <ion-header class="shadow-sm">
   <ion-toolbar color="primary">
     <ion-buttons slot="start">
@@ -55,35 +110,47 @@
     </ion-card>
     }
 
-    <ion-list lines="full">
-      @for (appointment of filteredAppointments$ | async; track appointment.id)
-      {
+    @for (appointment of filteredAppointments$ | async; track appointment.id)
+    {
+    <ion-card class="ion-text-center" (click)="editAppointment(appointment.id!)">
+      <ion-grid>
+        <ion-row>
+          <ion-col size="12">
+            <ion-avatar>
+              <img [src]="userRole?.photoUrl || '/assets/icon/default_avatar.jpg'">
+            </ion-avatar>
+          </ion-col>
+        </ion-row>
+      </ion-grid>
+      <ion-card-header>
+        <ion-card-title>
+          <ion-text>
+            <p>Fecha y Hora</p>
+          </ion-text>
+          <ion-text>
+            <p>{{ appointment.date | date:'medium' }}</p>
+          </ion-text>
+        </ion-card-title>
+        <ion-card-subtitle>Nombre: {{appointment.clientName | titlecase}}</ion-card-subtitle>
+      </ion-card-header>
+      <ion-card-content class="ion-align-items-center">
+        <ion-text>
+          <p>Servicio:</p>
+        </ion-text>
+        <ion-text>
+          <p>{{ appointment.service }} con {{ appointment.barber }}</p>
+        </ion-text>
+        <ion-text>
+          <p>
+            {{ appointment.status | titlecase}}
+          </p>
+        </ion-text>
+      </ion-card-content>
+    </ion-card>
 
-      <ion-item class="mb-2 shadow-sm rounded-3">
-
-        <ion-icon slot="start" name="cut-outline" color="primary"></ion-icon>
-
-        <ion-label>
-          <h3>{{ appointment.clientName }}</h3>
-          <p>Servicio: {{ appointment.service }} con {{ appointment.barber }}</p>
-          <p>Fecha y hora: {{ appointment.date | date:'medium' }}</p>
-          <p>Estado: {{ appointment.status }}</p>
-        </ion-label>
-
-        <ion-buttons slot="end">
-          <ion-button  fill="clear" color="warning" (click)="editAppointment(appointment.id!)" title="Editar">
-            <ion-icon name="create-outline"></ion-icon>
-          </ion-button>
-          <ion-button  fill="clear" color="danger" (click)="presentAlertMultipleButtons(appointment.id!)"
-            title="Eliminar">
-            <ion-icon name="trash-outline"></ion-icon>
-          </ion-button>
-        </ion-buttons>
-
-      </ion-item>
-
-      }
-    </ion-list>
+    }@empty {
+    <ion-list>No hay registros en lista.</ion-list>
+    }
   </div>
 
 

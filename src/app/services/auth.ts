@@ -35,7 +35,8 @@ async getIdToken(): Promise<string | null> {
   // AngularFireAuth.currentUser is a Promise<firebase.User | null>
   const firebaseCurrentUser = await this.afAuth.currentUser;
   if (!firebaseCurrentUser) {
-    return null; // NO HAY USUARIO LOGUEADO
+    return null; 
+    console.log("NO HAY USUARIO LOGUEADO");
   }
 
   console.log('Current User:', firebaseCurrentUser);
@@ -224,12 +225,13 @@ async getIdToken(): Promise<string | null> {
       };
 
       // 3. Guardar el perfil en Firestore
-      //await this.afs.setUsers(newUserProfile);
+      await this.afs.setUsers(uid, newUserProfile);
 
       // 4. ***PASO CLAVE: Forzar al usuario a definir su contraseña***
       await this.afAuth.sendPasswordResetEmail(email);
-
+      
       console.log(`Usuario creado (UID: ${uid}). Enlace de configuración enviado a ${email}.`);
+      this.router.navigate(['/usuarios']);
 
     } catch (error: any) {
       if (error.code === 'auth/email-already-in-use') {

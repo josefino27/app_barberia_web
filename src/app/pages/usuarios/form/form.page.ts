@@ -7,7 +7,7 @@ import {
   ReactiveFormsModule
 } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { IonicModule } from '@ionic/angular';
+import { AlertController, IonicModule } from '@ionic/angular';
 import { Observable } from 'rxjs';
 import { AppointmentModel } from 'src/app/interfaces/appointment-model';
 import { Barber } from 'src/app/interfaces/barber';
@@ -39,7 +39,8 @@ export class FormPage implements OnInit {
     private formBuilder: FormBuilder,
     private activatedRoute: ActivatedRoute,
     private router: Router,
-    private authService: AuthService
+    private authService: AuthService,
+    private alertController: AlertController
   ) {
 
     this.userForm = this.formBuilder.group({
@@ -128,9 +129,47 @@ export class FormPage implements OnInit {
     }
   }
 
-  async deleteUser() {
-    const user = await this.afs.deleteUserById(this.userId);
+  async deleteUser(id: string) {
+    
+    await this.afs.deleteUserById(id);
+    
     this.router.navigate(['/usuarios']);
+  }
+
+  async presentAlertMultipleButtons(id: string) {
+    const alert = await this.alertController.create({
+      cssClass: 'alert-buttons',
+      header: 'Eliminar Cita',
+      backdropDismiss: false,
+      message: `¿Estas seguro que deseas eliminar esta cita?`,
+      buttons: [
+
+        {
+          text: 'Cancel',
+          role: 'cancel',
+          cssClass: 'modal-button-cancel',
+          handler: () => {
+            console.log('Cancelar');
+          }
+        }, {
+          text: 'Okay',
+          handler: () => {
+            try {
+              // Llama al método de eliminación del servicio
+              this.deleteUser(id);
+              this.router.navigate(['/appointment']);
+              // Opcional: mostrar un Toast de éxito
+
+            } catch (error) {
+              console.error('Fallo al eliminar la cita:', error);
+              // Opcional: mostrar un Toast de error
+
+            }
+          }
+        }
+      ]
+    });
+    await alert.present();
   }
 
 

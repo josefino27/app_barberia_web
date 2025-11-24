@@ -41,13 +41,8 @@
 
     </ion-item>
     <ion-item>
-      @if(user?.role != 'super_admin'){
       <ion-input class="formControl" placeholder="Ingresa tu correo electronico" id="Email" type="email"
-        formControlName="email" readonly />
-      }@else{
-      <ion-input class="formControl" placeholder="Ingresa tu correo electronico" id="Email" type="email"
-        formControlName="email"/>
-      }
+        formControlName="email" />
 
 
 
@@ -57,12 +52,15 @@
         <ion-icon slot="icon-only" ios="logo-apple" md="add-circle-outline"></ion-icon>
         {{ isViewing ? 'Editar Usuario' : 'Agregar Usuario' }}
       </ion-button>
-      @if(user?.role === 'super_admin'){
-      <ion-button (click)="deleteUser()" color="danger">
+      <!-- @if(user?.role === 'super_admin'){ -->
+      @if(isViewing){
+      <ion-button (click)="presentAlertMultipleButtons(user?.id!)" color="danger">
         <ion-icon name="trash" slot="icon-only" ios="logo-apple" md="trash">
         </ion-icon> Eliminar Usuario
       </ion-button>
       }
+
+      <!-- // -->
     </ion-item>
   </form>
 
