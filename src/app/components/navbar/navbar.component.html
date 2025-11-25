@@ -1,8 +1,54 @@
-<ion-header class="ion-no-border" translucent>
+<ion-header [translucent]="true">
   <ion-toolbar>
     <ion-buttons slot="start">
-      <ion-back-button defaultHref="/"></ion-back-button>
+      <ion-button defaultHref="/usuarios">
+        <ion-title>{{isAuthenticated?.name || 'nombre'}}</ion-title>
+      </ion-button>
     </ion-buttons>
-    <ion-title class="ion-text-capitalize">titulo</ion-title>
+    <ion-buttons slot="end">
+      @if (isAuthenticated){
+      <ion-button fill="clear" aria-label="User profile" (click)="presentPopover($event)" slot="end">
+        <ion-avatar>
+          <img [src]="isAuthenticated.photoUrl || 'assets/default-avatar.png'">
+        </ion-avatar>
+      </ion-button>
+      <ion-popover #popover [isOpen]="isOpen" (didDismiss)="isOpen = false">
+        <ng-template>
+          <ion-content>
+            <ion-grid>
+              <ion-row>
+                <ion-col>
+                  <ion-button fill="outline" expand="full" (click)="goToEdit(isAuthenticated.id)">Perfil</ion-button>
+                </ion-col>
+              </ion-row>
+              <ion-row>
+                <ion-col>
+                  <ion-button fill="outline" expand="full"
+                    (click)="goToAppointment(isAuthenticated.id)">Citas</ion-button>
+                </ion-col>
+              </ion-row>
+              @if(isAuthenticated.role === 'admin' || isAuthenticated.role === 'super_admin'){
+              <ion-row>
+                <ion-col>
+                  <ion-button fill="outline" expand="full"
+                    (click)="goToSchedule(isAuthenticated.id)">Horarios</ion-button>
+                </ion-col>
+              </ion-row>
+              }
+              <ion-row>
+                <ion-col>
+                  <ion-button fill="solid" expand="block" (click)="logout()">
+                    <ion-icon name="power-outline">
+                    </ion-icon>
+                    Cerrar Sesión</ion-button>
+                </ion-col>
+              </ion-row>
+            </ion-grid>
+          </ion-content>
+        </ng-template>
+      </ion-popover>
+      }
+    </ion-buttons>
+
   </ion-toolbar>
 </ion-header>

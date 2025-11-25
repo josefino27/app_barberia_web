@@ -35,8 +35,8 @@ async getIdToken(): Promise<string | null> {
   // AngularFireAuth.currentUser is a Promise<firebase.User | null>
   const firebaseCurrentUser = await this.afAuth.currentUser;
   if (!firebaseCurrentUser) {
-    return null; 
     console.log("NO HAY USUARIO LOGUEADO");
+    return null; 
   }
 
   console.log('Current User:', firebaseCurrentUser);
@@ -177,7 +177,7 @@ async getIdToken(): Promise<string | null> {
     // }
 
     //this.router.navigateByUrl('/appointment');
-    this.router.navigateByUrl('/usuarios', {replaceUrl: true});
+    this.router.navigate(['/usuarios'], {replaceUrl: true});
     console.log("result", result);
     return result;
 
@@ -193,7 +193,7 @@ async getIdToken(): Promise<string | null> {
     localStorage.removeItem('lastLoginTime');
 
     // Redirige al login después de cerrar sesión
-    this.router.navigateByUrl('/login', { replaceUrl: true });
+    this.router.navigate(['/login'], { replaceUrl: true });
   }
 
   /**

@@ -13,13 +13,14 @@ import { AppointmentFilterPipe } from 'src/app/pipes/appointment-filter-pipe';
 import { switchMap, tap, finalize, shareReplay, take } from 'rxjs/operators';
 import { of, EMPTY, combineLatest } from 'rxjs';
 import { User } from 'src/app/interfaces/user';
+import { NavbarComponent } from "src/app/components/navbar/navbar.component";
 
 @Component({
   selector: 'app-appointments',
   templateUrl: './appointment.page.html',
   styleUrls: ['./appointment.page.scss'],
   standalone: true,
-  imports: [IonicModule, CommonModule, RouterLink, FormsModule],
+  imports: [IonicModule, CommonModule, RouterLink, FormsModule, NavbarComponent],
 })
 export class AppointmentsPage implements OnInit, OnDestroy {
 
