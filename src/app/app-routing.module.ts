@@ -1,19 +1,24 @@
 import { NgModule } from '@angular/core';
 import { PreloadAllModules, RouterModule, Routes } from '@angular/router';
 import { authGuard } from './guards/auth-guard';
+import { roleGuardGuard } from './guards/role-guard-guard';
 
 const routes: Routes = [
-  {  
+  {
     path: '',
     redirectTo: 'login',
     pathMatch: 'full'
   },
   {
-    
+
     path: 'usuarios',
-    loadChildren: () => import('./pages/usuarios/usuarios.module').then( m => m.UsuariosPageModule),
-    // --- APLICACIÓN DEL GUARD AQUÍ ---
-    canActivate: [authGuard]
+    loadChildren: () => import('./pages/usuarios/usuarios.module').then(m => m.UsuariosPageModule),
+    // --- APLICACIÓN DEL GUARD  ---
+    canActivate: [authGuard, roleGuardGuard],
+    // definimos los roles requeridos
+    data: {
+      roles: ['super_admin','admin'] // <-- requiredRoles será ['super_admin']
+    }
   },
   {
     path: 'home',
@@ -44,10 +49,10 @@ const routes: Routes = [
     path: 'login',
     loadChildren: () => import('./pages/auth/login/login.module').then(m => m.LoginPageModule)
   },
-   {
+  {
     // '**' comodín que captura CUALQUIER URL que no haya coincidido
     path: '**',
-    redirectTo: 'login', 
+    redirectTo: 'login',
     pathMatch: 'full'
   }
 

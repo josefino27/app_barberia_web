@@ -3,7 +3,7 @@
     <ion-title>
       {{ isViewing ? 'Editar Cita' : 'Agendar Cita' }}
     </ion-title>
-    <ion-buttons slot="end">
+    <ion-buttons slot="start">
       <ion-back-button defaultHref="/appointment"></ion-back-button>
     </ion-buttons>
   </ion-toolbar>
@@ -14,12 +14,13 @@
     <ion-item>
       <ion-label position="floating">Barbero</ion-label>
       <ion-select interface="modal" formControlName="barber">
-        <ion-select-option value="barbero-A">Barbero A</ion-select-option>
-        <ion-select-option value="barbero-B">Barbero B</ion-select-option>
-        <ion-select-option value="barbero-C">Barbero C</ion-select-option>
+      @for (barber of barbers$ | async; track barber.id) {
+        <ion-select-option [value]="barber.id">{{barber.name}}
+        </ion-select-option>
+
+      }
       </ion-select>
     </ion-item>
-
     <ion-item>
       <ion-label position="floating">Servicio</ion-label>
       <ion-select interface="modal" formControlName="service">
@@ -28,6 +29,7 @@
         <ion-select-option value="tinte">Tinte de Cabello</ion-select-option>
       </ion-select>
     </ion-item>
+
     @if (isViewing) {
     <ion-item>
       <ion-label position="stacked">Fecha y Hora Actual de la Cita</ion-label>
@@ -50,17 +52,30 @@
     </ion-item>
     }
 
-
-
     @if (selectedDate && availableHours.length > 0 && !isViewing) {
-    <ion-item>
+    <ion-card>
+      <ion-card-header>
+        <ion-card-title>Disponibilidad</ion-card-title>
+        <ion-card-subtitle>{{ selectedDate | date:'fullDate' }}</ion-card-subtitle>
+      </ion-card-header>
+      <ion-card-content>
+        @for (hour of availableHours; track hour) {
+        <ion-chip (click)="selectHour(hour)" [outline]="selectedHour !== hour"
+          [color]="selectedHour === hour ? 'primary' : ''">
+          <ion-label>{{ hour }}</ion-label>
+        </ion-chip>
+        }
+      </ion-card-content>
+    </ion-card>
+
+    <!-- <ion-item>
       <ion-label position="floating">Elige la Hora</ion-label>
       <ion-select interface="modal" [value]="selectedHour" (ionChange)="onHourSelected($event)">
         @for (hour of availableHours; track hour) {
         <ion-select-option [value]="hour">{{ hour }}</ion-select-option>
         }
       </ion-select>
-    </ion-item>
+    </ion-item> -->
     } @else if (selectedDate && !isViewing) {
     <ion-card>
       <ion-card-content>
@@ -71,15 +86,15 @@
 
     <ion-item>
       <ion-label position="floating">Nombre</ion-label>
-      <ion-input type="text" formControlName="clientName" ></ion-input>
+      <ion-input type="text" formControlName="clientName"></ion-input>
     </ion-item>
     <ion-item>
       <ion-label position="floating">Email</ion-label>
-      <ion-input type="text" formControlName="clientEmail" ></ion-input>
+      <ion-input type="text" formControlName="clientEmail"></ion-input>
     </ion-item>
     <ion-item>
       <ion-label position="floating">Celular</ion-label>
-      <ion-input type="tel" formControlName="clientPhone" ></ion-input>
+      <ion-input type="tel" formControlName="clientPhone"></ion-input>
     </ion-item>
 
     @if(errorMessage){
@@ -89,7 +104,8 @@
     }
     @if(isViewing){
     <ion-button expand="full" type="submit" [disabled]="!appointmentForm.valid">Actualizar Cita</ion-button>
-    <ion-button expand="full" type="button" (click)="presentAlertMultipleButtons(this.appointmentId!)">Cancelar Cita</ion-button>
+    <ion-button expand="full" type="button" (click)="presentAlertMultipleButtons(this.appointmentId!)">Cancelar
+      Cita</ion-button>
     } @else {
     <ion-button expand="full" type="submit" [disabled]="!appointmentForm.valid || !selectedHour">Agendar
       Cita</ion-button>

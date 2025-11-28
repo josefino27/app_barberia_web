@@ -1,12 +1,13 @@
 // src/app/services/auth.service.ts
 
-import { Injectable } from '@angular/core';
+import { inject, Injectable, Injector, runInInjectionContext } from '@angular/core';
 import { Router } from '@angular/router';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
 import firebase from 'firebase/compat/app';
-import { firstValueFrom } from 'rxjs';
+import { catchError, firstValueFrom, map, Observable, of, shareReplay, switchMap, tap } from 'rxjs';
 import { User } from '../interfaces/user'; // Tu interfaz de usuario
 import { FirestoreService } from './firestore';
+import { AngularFirestore } from '@angular/fire/compat/firestore';
 
 @Injectable({
   providedIn: 'root'
@@ -15,12 +16,59 @@ export class AuthService {
 
   // Usuario de Firebase (solo la información de autenticación)
   public firebaseUser$ = this.afAuth.authState;
- 
+  
+  private usersCollectionName = 'users';
+
+  private injector = inject(Injector); 
+
+  public currentUser$: Observable<User | null> = this.firebaseUser$.pipe(
+    
+    switchMap(user => {
+      if (user) {
+        // 🔑 ERROR CORREGIDO: Usamos runInInjectionContext para envolver
+        // la llamada a AngularFirestore.doc() y darle el contexto de inyección.
+        return runInInjectionContext(this.injector, () => {
+          return this.afst.doc<User>(`${this.usersCollectionName}/${user.uid}`).valueChanges().pipe(
+            
+            map(profile => {
+              if (profile) {
+                return { ...profile, uid: user.uid } as User;
+              } else {
+                console.warn(`Perfil de usuario no encontrado para UID: ${user.uid}`);
+                return { uid: user.uid, role: 'client', name: 'Usuario sin Perfil', email: user.email || 'N/A' } as unknown as User;
+              }
+            }),
+            catchError(error => {
+              console.error('Error al obtener perfil de Firestore:', error);
+              return of(null);
+            })
+          );
+        });
+      } else {
+        // Usuario NO autenticado
+        return of(null);
+      }
+    }),
+    
+    // Asegura que el resultado de la tubería sea compartido
+    tap(user => console.log('Estado de usuario actualizado:', user?.role || 'Desconectado')),
+    shareReplay({ bufferSize: 1, refCount: true }),
+    catchError(error => {
+      console.error('Error general en el flujo de autenticación:', error);
+      return of(null);
+    })
+  );
+
   constructor(
     private afAuth: AngularFireAuth,
     private afs: FirestoreService,
+    private afst: AngularFirestore,
     private router: Router
-  ) { }
+  ) { 
+    
+    
+  }
+
 
   // --- MÉTODOS DE ESTADO Y ACCESO ---
 

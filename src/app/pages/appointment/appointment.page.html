@@ -1,130 +1,372 @@
 <app-navbar></app-navbar>
 
-<ion-header class="shadow-sm">
-  <ion-toolbar color="primary">
-    <ion-buttons slot="start">
-      <ion-back-button defaultHref="/usuarios"></ion-back-button>
-    </ion-buttons>
-    <ion-title>Agenda de Citas</ion-title>
-    <ion-buttons slot="end">
-      <ion-button routerLink="/appointment/form">
-        <ion-icon name="add-circle-outline"></ion-icon>
-      </ion-button>
-    </ion-buttons>
-  </ion-toolbar>
-</ion-header>
+<ion-content class="ion-padding">
+  <ion-header>
+    <ion-toolbar>
+      <ion-item>
+        <ion-buttons slot="start">
+          <ion-button routerLink="/appointment/form" expand="full">
+            <ion-icon slot="start" name="add-circle-outline"></ion-icon>
+            <ion-text>
+              Agregar Cita
+            </ion-text>
+          </ion-button>
+        </ion-buttons>
 
-<ion-content class="ion-padding bg-light">
+      </ion-item>
+    </ion-toolbar>
+  </ion-header>
 
-  <div class="container py-4">
+  <!-- SECCIÓN DE AGENDA RÁPIDA (SLOTS DE DISPONIBILIDAD) -->
+  <!-- <div class="container py-2 mb-5 p-0">
+    <h3 class="fw-bold mb-3">Agenda Rápida (Slots)</h3>
 
-    <div class="row mb-4">
-      <div class="col-12">
-        <ion-searchbar placeholder="Buscar por nombre de cliente" (ionChange)="onSearchChange($event)" debounce="300"
-          class="form-control p-0 border-0 shadow-none" style="--box-shadow: none;"></ion-searchbar>
-      </div>
+    <ion-item class="rounded-item shadow-sm mb-3" lines="none">
+      <ion-label position="stacked">Barbero para Agendar</ion-label>
+      <ion-select interface="popover" 
+                  [(ngModel)]="selectedBarberForSlots" 
+                  (ionChange)="onBarberSelectForSlots($event)">
+        <ion-select-option *ngFor="let barber of (barbers$ | async)" [value]="barber.id">
+          {{ barber.name }}
+        </ion-select-option>
+      </ion-select>
+    </ion-item>
+
+    <div class="d-flex days-scroll mb-4">
+      <ion-chip *ngFor="let day of days"
+        [color]="day.dateString === selectedDayChip ? 'primary' : 'medium'"
+        (click)="selectDay(day.dateString)"
+        class="day-chip">
+        <ion-label>
+          {{ day.name }}.
+          <span class="day-number">{{ day.date | date: 'dd' }}</span>
+        </ion-label>
+      </ion-chip>
     </div>
 
-    <div class="row mb-4">
-      <div class="col-12 d-flex align-items-center gap-2">
-        <ion-label>Filtrar por fecha:</ion-label>
+    <ion-grid *ngIf="(timeSlots$ | async) as slots" class="slot-grid">
+      <ion-row class="slot-grid-header ion-padding-bottom">
+        <ion-col size="12">
+          <h4 class="fw-bold fs-6">
+            Disponibilidad para {{ selectedBarberForSlots | uppercase }} el 
+            {{ selectedDayChip | date: 'fullDate' }}
+          </h4>
+        </ion-col>
+      </ion-row>
 
-        <ion-datetime-button datetime="datetime"></ion-datetime-button>
+      <ion-row class="ion-text-center">
+        <ion-col size="4" size-md="2" *ngFor="let slot of slots">
+          <ion-button expand="block" mode="ios"
+            [color]="slot.status === 'FREE' ? 'success' : (slot.status === 'BOOKED' ? 'danger' : 'light')"
+            [disabled]="slot.status !== 'FREE'"
+            (click)="navigateToForm(slot)"
+            class="slot-button">
+            {{ slot.time }}
+            <ion-icon slot="start" 
+                      [name]="slot.status === 'FREE' ? 'checkmark-circle' : (slot.status === 'BOOKED' ? 'close-circle' : 'time')">
+            </ion-icon>
+          </ion-button>
+        </ion-col>
+      </ion-row>
 
-        <!-- Botón para limpiar el filtro dentro del modal -->
-        <div class="ion-padding-top ion-text-center">
-          <ion-button fill="clear" color="danger" (click)="clearDateFilter()">
-            <ion-icon name="close-circle-outline" slot="start"></ion-icon>
-            Limpiar Filtro
+      <ion-row *ngIf="slots.length === 0">
+        <ion-col size="12" class="ion-text-center">
+          <p>No hay slots disponibles para este día o barbero.</p>
+        </ion-col>
+      </ion-row>
+    </ion-grid>
+    <div *ngIf="!(timeSlots$ | async)" class="ion-text-center ion-padding">
+        <ion-spinner name="crescent"></ion-spinner>
+    </div>
+
+  </div> -->
+
+  <!-- SECCIÓN DE LISTA COMPLETA DE CITAS (Filtros y Contenido) -->
+  <ion-text color="medium">
+    <h4 class="ion-padding-start mt-5">Lista Completa de Citas Agendadas</h4>
+  </ion-text>
+
+  <hr class="mb-4">
+
+  <div class="container p-0">
+    <div class="row g-4 mb-4 d-flex align-items-center">
+      <!-- Búsqueda de Cliente -->
+      <div class="col-12 col-md-8 mb-3">
+        <ion-searchbar placeholder="Buscar por nombre de cliente" [(ngModel)]="searchTerm" debounce="300"
+          showClearButton="always" (ionInput)="onSearchChange($event)" class="form-control p-0 border-0 shadow-none"
+          style="--box-shadow: none;">
+        </ion-searchbar>
+
+      </div>
+       <!-- Selector de Fecha para FILTRO DE LISTA -->
+      <div class="col-12 col-md-4 mb-3">
+        <ion-item class="rounded-item shadow-sm" lines="none">
+          <ion-label position="stacked">Fecha: </ion-label>
+          <!-- ion-note para mostrar el valor seleccionado -->
+          <ion-note slot="end" class="ion-padding-end">
+            <!-- {{ selectedDateValue === 'all' ? 'Todas' : (selectedBarberForSlots | date: 'dd/MM/yyyy') }} -->
+            {{ selectedDateValue === 'all' ? 'Todas las fechas' : (selectedDateValue | date: 'dd/MM/yyyy') }}
+          </ion-note>
+          <ion-datetime-button 
+          class="ion-padding-top ion-text-center"
+          datetime="datetime"></ion-datetime-button>
+
+          <!-- Botón para limpiar el filtro dentro del modal -->
+          <div class="ion-padding-top ion-text-center">
+            <ion-button fill="clear" color="danger" (click)="clearDateFilter()">
+              <ion-icon name="close-circle-outline" slot="start"></ion-icon>
+              Limpiar Filtro
+            </ion-button>
+          </div>
+        </ion-item>
+      </div>
+    </div>
+  </div>
+  
+
+      <ion-modal [keepContentsMounted]="true">
+        <ng-template>
+          <ion-datetime id="datetime" presentation="date" (ionChange)="onDateChange($event)"
+            [showDefaultButtons]="false">
+          </ion-datetime>
+        </ng-template>
+      </ion-modal>
+
+  <!-- LISTA DE CITAS -->
+  <ion-list *ngIf="(filteredAppointments$ | async) as appointments; else loadingOrEmpty" lines="full">
+
+    <div *ngIf="appointments.length === 0 && !(isLoading)">
+      <ion-item lines="none">
+        <ion-label class="ion-text-center">
+          <h2>No hay citas agendadas que coincidan con los filtros.</h2>
+          <p>Ajusta el nombre o la fecha.</p>
+        </ion-label>
+      </ion-item>
+    </div>
+
+    <!-- No necesitas un ng-template showAppointments si usas *ngIf arriba y *ngFor aquí -->
+    <ion-item-sliding *ngFor="let appointment of appointments">
+
+      <ion-item [routerLink]="['/appointment/form', appointment.id]" detail>
+        <ion-label>
+          <h2 class="fw-bold">{{ appointment.clientName }}</h2>
+          <p>Servicio: {{ appointment.service }}</p>
+          <p>Barbero: {{ appointment.barber }}</p>
+        </ion-label>
+        <ion-note slot="end">
+          <!-- Muestra la fecha y hora de la cita -->
+          {{ appointment.date | date: 'dd/MM/yy hh:mm a' }}
+        </ion-note>
+      </ion-item>
+
+      <ion-item-options side="end">
+        <ion-item-option color="danger" (click)="deleteAppointment(appointment.id!)">
+          <ion-icon slot="icon-only" name="trash"></ion-icon>
+        </ion-item-option>
+      </ion-item-options>
+    </ion-item-sliding>
+
+  </ion-list>
+
+  <!-- Template para carga o lista vacía -->
+  <ng-template #loadingOrEmpty>
+    <div class="ion-padding ion-text-center">
+      <ion-spinner *ngIf="isLoading" name="crescent"></ion-spinner>
+      <ion-text *ngIf="!isLoading && searchTerm === '' && selectedBarberForSlots === 'all'">
+        <p>Aún no tienes citas agendadas.</p>
+      </ion-text>
+    </div>
+  </ng-template>
+
+  <!-- Modal de Confirmación de Eliminación (Mantenido) -->
+  <ion-modal [isOpen]="!!confirmDeleteId" [backdropDismiss]="false">
+    <ng-template>
+      <ion-header>
+        <ion-toolbar>
+          <ion-title>Confirmar Eliminación</ion-title>
+        </ion-toolbar>
+      </ion-header>
+      <ion-content class="ion-padding ion-text-center">
+        <p>¿Estás seguro de que deseas eliminar esta cita?</p>
+        <div class="d-flex justify-content-center gap-2">
+          <ion-button color="medium" (click)="cancelDelete()" [disabled]="isDeleting">
+            Cancelar
+          </ion-button>
+          <ion-button color="danger" (click)="confirmDelete()" [disabled]="isDeleting">
+            <ion-spinner *ngIf="isDeleting" slot="start" name="lines-small"></ion-spinner>
+            {{ isDeleting ? 'Eliminando...' : 'Eliminar' }}
           </ion-button>
         </div>
+      </ion-content>
+    </ng-template>
+  </ion-modal>
 
-        <ion-modal [keepContentsMounted]="true">
-          <ng-template>
-            <ion-datetime id="datetime" presentation="date" [(ngModel)]="dateModel" (ionChange)="onDateChange($event)"
-              [min]="getToday()" [showDefaultButtons]="false">
-            </ion-datetime>
-          </ng-template>
-        </ion-modal>
-      </div>
-    </div>
-
-    @if ((filteredAppointments$ | async)?.length === 0 && !isLoading) {
-    <ion-card class="shadow-sm border-dashed">
-      <ion-card-content>
-        <p class="text-center text-secondary">No hay citas agendadas que coincidan con el filtro.</p>
-      </ion-card-content>
-    </ion-card>
-    }
-
-    @for (appointment of filteredAppointments$ | async; track appointment.id)
-    {
-    <ion-card class="ion-text-center" (click)="editAppointment(appointment.id!)">
-      <ion-grid>
-        <ion-row>
-          <ion-col size="12">
-            <ion-avatar>
-              <img [src]="userRole?.photoUrl || '/assets/icon/default_avatar.jpg'">
-            </ion-avatar>
-          </ion-col>
-        </ion-row>
-      </ion-grid>
-      <ion-card-header>
-        <ion-card-title>
-          <ion-text>
-            <p>Fecha y Hora</p>
-          </ion-text>
-          <ion-text>
-            <p>{{ appointment.date | date:'medium' }}</p>
-          </ion-text>
-        </ion-card-title>
-        <ion-card-subtitle>Nombre: {{appointment.clientName | titlecase}}</ion-card-subtitle>
-      </ion-card-header>
-      <ion-card-content class="ion-align-items-center">
-        <ion-text>
-          <p>Servicio:</p>
-        </ion-text>
-        <ion-text>
-          <p>{{ appointment.service }} con {{ appointment.barber }}</p>
-        </ion-text>
-        <ion-text>
-          <p>
-            {{ appointment.status | titlecase}}
-          </p>
-        </ion-text>
-      </ion-card-content>
-    </ion-card>
-
-    }@empty {
-    <ion-list>No hay registros en lista.</ion-list>
-    }
-  </div>
-
-
-
-  <!-- <div *ngIf="confirmDeleteId" class="modal d-block" tabindex="-1" role="dialog">
-    <div class="modal-dialog modal-dialog-centered" role="document">
-      <div class="modal-content rounded-3 shadow-lg">
-        <div class="modal-header bg-danger text-white border-bottom-0">
-          <h5 class="modal-title">Confirmar Eliminación</h5>
-          <button type="button" class="btn-close btn-close-white" aria-label="Close" (click)="cancelDelete()"></button>
-        </div>
-        <div class="modal-body p-4">
-          <p class="mb-3">¿Estás seguro de que deseas eliminar esta cita? Esta acción no se puede deshacer.</p>
-          <div *ngIf="isDeleting" class="d-flex align-items-center justify-content-center text-danger">
-            <ion-spinner name="dots" class="me-2"></ion-spinner>
-            <p class="mb-0 fw-bold">Eliminando...</p>
-          </div>
-        </div>
-        <div class="modal-footer border-top-0 justify-content-between">
-          <button type="button" class="btn btn-secondary" (click)="cancelDelete()"
-            [disabled]="isDeleting">Cancelar</button>
-          <button type="button" class="btn btn-danger" (click)="confirmDelete()" [disabled]="isDeleting">
-            <ion-icon name="trash-outline" class="me-1"></ion-icon>
-            Eliminar
-          </button>
-        </div>
-      </div>
-    </div>
-  </div> -->
 </ion-content>
+
+<!-- Estilos CSS básicos para simular Bootstrap/Tailwind y asegurar la apariencia -->
+<style>
+  /* Base */
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  /* Utilidades de espaciado */
+  .py-4 {
+    padding-top: 1.5rem;
+    padding-bottom: 1.5rem;
+  }
+
+  .py-2 {
+    padding-top: 0.75rem;
+    padding-bottom: 0.75rem;
+  }
+
+  .mt-5 {
+    margin-top: 3rem;
+  }
+
+  .p-0 {
+    padding: 0 !important;
+  }
+
+  /* Utilidades de flexbox y grid (simulación de row/col) */
+  .row {
+    display: flex;
+    flex-wrap: wrap;
+    margin-left: -0.75rem;
+    margin-right: -0.75rem;
+  }
+
+  .col-12 {
+    width: 100%;
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+
+  .col-md-9 {
+    flex: 0 0 75%;
+    max-width: 75%;
+  }
+
+  .col-md-3 {
+    flex: 0 0 25%;
+    max-width: 25%;
+  }
+
+  @media (max-width: 767px) {
+
+    .col-md-9,
+    .col-md-3 {
+      flex: 0 0 100%;
+      max-width: 100%;
+    }
+
+    .row {
+      margin-left: 0;
+      margin-right: 0;
+    }
+  }
+
+  .g-4 {
+    gap: 1.5rem;
+  }
+
+  .mb-4 {
+    margin-bottom: 1.5rem;
+  }
+
+  .mb-3 {
+    margin-bottom: 1rem;
+  }
+
+  .d-flex {
+    display: flex;
+  }
+
+  .justify-content-center {
+    justify-content: center;
+  }
+
+  .align-items-center {
+    align-items: center;
+  }
+
+  .gap-2>* {
+    margin-right: 0.5rem;
+  }
+
+  .gap-2>*:last-child {
+    margin-right: 0;
+  }
+
+  /* ESTILOS ESPECÍFICOS DE SLOTS */
+  .days-scroll {
+    overflow-x: auto;
+    white-space: nowrap;
+    padding-bottom: 5px;
+  }
+
+  .day-chip {
+    flex-shrink: 0;
+    margin-right: 8px;
+    cursor: pointer;
+    text-transform: capitalize;
+  }
+
+  .day-chip .day-number {
+    font-weight: bold;
+    font-size: 1.1em;
+    margin-left: 4px;
+  }
+
+  .slot-button {
+    height: 40px;
+    font-size: 0.9em;
+    --border-radius: 8px;
+    margin-bottom: 8px;
+    position: relative;
+    --padding-start: 4px;
+    --padding-end: 4px;
+    --box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  .slot-button[disabled] {
+    opacity: 0.6;
+    --background: var(--ion-color-light);
+    --color: var(--ion-color-medium);
+  }
+
+  .slot-button ion-icon {
+    font-size: 1.2em;
+    margin-right: 4px;
+  }
+
+  .fs-6 {
+    font-size: 1rem;
+  }
+
+  /* Estilos de Ionic */
+  ion-searchbar {
+    --box-shadow: none !important;
+    --border-radius: 8px;
+    --background: var(--ion-color-light);
+  }
+
+  ion-item.rounded-item {
+    --border-radius: 8px;
+    /* Asegura que no tenga padding horizontal que se superponga con ion-select/datetime-button */
+    --padding-start: 0;
+    --inner-padding-end: 0;
+    --background: var(--ion-color-light);
+  }
+
+  ion-item.rounded-item ion-label {
+    padding-left: 16px;
+  }
+
+  /* Estilos de Tipografía */
+  .fw-bold {
+    font-weight: bold;
+  }
+</style>

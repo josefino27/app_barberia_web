@@ -6,10 +6,11 @@ import { AppointmentModel } from 'src/app/interfaces/appointment-model';
 import { FirestoreService } from 'src/app/services/firestore';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
 import { ActivatedRoute, Router } from '@angular/router';
-import { combineLatest, firstValueFrom, map, startWith, Subscription } from 'rxjs';
+import { combineLatest, firstValueFrom, map, Observable, shareReplay, startWith, Subscription, switchMap, take } from 'rxjs';
 import { User } from 'src/app/interfaces/user';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
 import { AuthService } from 'src/app/services/auth';
+import { Barber } from 'src/app/interfaces/barber';
 
 @Component({
   selector: 'app-appointment-form',
@@ -28,23 +29,24 @@ export class AppointmentFormPage implements OnInit {
   formattedAppointmentDate: string | null = null;
   isViewing: boolean = false;
   errorMessage: string | null = null;
-
+  barbero: string | undefined = undefined;
   days: { label: string, date: Date }[] = [];
   availableHours: string[] = [];
   selectedDate: Date | null = null;
   selectedHour: string | null = null;
   serviceDuration: number = 0; // Duración total del servicio
   user: User | null = null;
-
+  public barbers$!: Observable<User[]>;
   // Simulación de la disponibilidad del barbero
   barberAvailability: string[] = ['09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '12:00', '12:30', '13:00', '13:30'];
 
   // Mapeo de duración de servicios
   private serviceDurations = {
-    'corte-hombre': 30, // en minutos
-    'arreglo-barba': 15,
+    'corte-hombre': 60, // en minutos
+    'arreglo-barba': 60,
     'tinte': 60,
   };
+
 
   private barberSchedules = {
     'barbero-A': {
@@ -74,7 +76,8 @@ export class AppointmentFormPage implements OnInit {
     private activatedRoute: ActivatedRoute,
     private router: Router,
     private afauth: AuthService,
-    private alertController: AlertController
+    private alertController: AlertController,
+    private afst: AngularFirestore
   ) {
     // Asegura que el FormGroup SIEMPRE esté definido antes de que el HTML se renderice
     this.initializeForm();
@@ -109,10 +112,10 @@ export class AppointmentFormPage implements OnInit {
       this.appointmentId = this.activatedRoute.snapshot.paramMap.get('id');
       console.log("CITAId", this.appointmentId);
       console.log("user", this.afauth.getCurrentUser);
-
-
+      this.barbers$ = this.firestoreService.barbersUserData$;
       const userData = await this.afauth.getCurrentUser();
       this.user = userData;
+      console.log("barbers$: ", this.barbers$);
       console.log("Usuario actual en form cita: ", this.user?.name);
 
       if (this.appointmentId) {
@@ -378,7 +381,10 @@ export class AppointmentFormPage implements OnInit {
         date: this.appointmentForm.value.date, // Convertimos el string a un objeto Date
         clientName: this.appointmentForm.value.clientName,
         clientPhone: this.appointmentForm.value.clientPhone,
-        status: 'agendada'
+        status: 'agendada',
+        clientEmail: 'jodanu19@gmail.com',
+        clientId: '1vkew069EMdv4UARyVPzDzkbxhH2',
+        barberId: 'ZliXcU4txNSDyLkuzBc6iVJ4v3g1'
       };
       console.log('appoinmentForm', appointment)
 

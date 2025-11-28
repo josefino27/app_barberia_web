@@ -32,7 +32,7 @@
       <ion-select cancelText="Cerrar" label="Selecciona un rol" label-placement="floating" class="formControl" id="Rol"
         formControlName="role">
 
-        @if(user?.role === 'super_admin'){
+        @if(isAuthenticated?.role === 'super_admin'){
         <ion-select-option selected aria-selected="true" value="super_admin">Super Admin</ion-select-option>
         <ion-select-option value="admin">Admin</ion-select-option>
         }

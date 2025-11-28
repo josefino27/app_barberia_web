@@ -1,6 +1,7 @@
 export interface Barber {
-  id?: string;
-  name: string;
-  specialty?: string;
-  photoUrl?: string;
+  bio?: string,
+  id?: string,
+  photoUrl?: string,
+  status?: string,
+  userId?: string
 }

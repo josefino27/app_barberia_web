@@ -31,8 +31,9 @@ export class FormPage implements OnInit {
   usersId$!: Observable<User[]>
   userForm: FormGroup;
   newuser: User[] = [];
-  isViewing: boolean = false; 
+  isViewing: boolean = false;
   user: User | null = null;
+  isAuthenticated: User | null = null;
 
   constructor(
     private afs: FirestoreService,
@@ -59,11 +60,18 @@ export class FormPage implements OnInit {
       this.userId = this.activatedRoute.snapshot.paramMap.get('id');
       console.log("userId", this.userId);
 
+      this.authService.getCurrentUser().then(fire => this.isAuthenticated = fire)
+
+      if (this.isAuthenticated) {
+
+        console.log("isAuthenticatedForm: ", this.isAuthenticated);
+      }
       if (this.userId) {
         this.isViewing = true;
+        console.log("isAuthenticatedForm: ", this.isAuthenticated);
         console.log('ID recibido:', this.userId);
         this.loadUserForm(this.userId);
-        
+
       }
     });
   }
@@ -108,7 +116,7 @@ export class FormPage implements OnInit {
         //   });
       }
     }
-    
+
   }
 
 
@@ -130,9 +138,9 @@ export class FormPage implements OnInit {
   }
 
   async deleteUser(id: string) {
-    
+
     await this.afs.deleteUserById(id);
-    
+
     this.router.navigate(['/usuarios']);
   }
 

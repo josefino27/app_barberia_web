@@ -1,7 +1,7 @@
 import { EnvironmentInjector, inject, Injectable, runInInjectionContext } from '@angular/core';
 import { AngularFirestore, AngularFirestoreCollection } from '@angular/fire/compat/firestore';
 import { BehaviorSubject, firstValueFrom, Observable, of } from 'rxjs';
-import { catchError, map } from 'rxjs/operators';
+import { catchError, map, shareReplay } from 'rxjs/operators';
 import { User } from '../interfaces/user';
 import { AppointmentModel } from '../interfaces/appointment-model';
 import { Barber } from '../interfaces/barber';
@@ -294,7 +294,7 @@ export class FirestoreService {
         const userDocRef = this.afs.doc<User>(`users/${id}`);
         userDocRef.delete();
         const userAuth = await this.afa.currentUser;
-        
+
         if (userAuth) {
           await userAuth?.delete();
           console.log('Usuario eliminado firestore');
@@ -376,31 +376,33 @@ export class FirestoreService {
 
   }
 
-  /**
-   * Obtiene la colección de citas filtrada según el rol del usuario,
-   * retornando un Observable que se actualiza en tiempo real.
-   * FIX: Se elimina 'async' para que el retorno sea Observable<AppointmentModel[]>
-   */
-  getAppointmentsByRoleLive(role: User | null, userIdentifier: string): Observable<AppointmentModel[]> {
+  getAppointmentsByRoleLive( role: User | null, userIdentifier: string): Observable<AppointmentModel[]> {
 
     return runInInjectionContext(this.injector, () => {
       let collection: AngularFirestoreCollection<AppointmentModel>;
+      const collectionPath = 'appointments'; // Nombre de tu colección
 
       if (role?.role === 'super_admin') {
         // Super Admin: ve todas las citas
-        collection = this.afs.collection<AppointmentModel>('appointments');
-      } else if (role?.role === 'admin' || role?.role === 'admin') {
-        // Admin/Barbero: ve solo las citas donde su nombre coincide con el campo 'barber'
-        collection = this.afs.collection<AppointmentModel>('appointments', ref =>
-          ref.where('barber', '==', userIdentifier)
+        collection = this.afs.collection<AppointmentModel>(collectionPath);
+
+      } else if (role?.role === 'admin' || role?.role === 'barber') {
+        // 🔑 Admin/Barbero: ve solo las citas donde su ID coincide con el campo 'barberId'
+        // UserIdentifier DEBE ser el UID del barbero.
+        collection = this.afs.collection<AppointmentModel>(collectionPath, ref =>
+          ref.where('barberId', '==', userIdentifier)
         );
+
       } else if (role?.role === 'client') {
-        // Cliente: ve solo sus propias citas (donde su nombre coincide con 'clientName')
-        collection = this.afs.collection<AppointmentModel>('appointments', ref =>
-          ref.where('clientName', '==', userIdentifier)
+        // 🔑 Cliente: ve solo sus propias citas donde su ID coincide con 'clientId'
+        // UserIdentifier DEBE ser el UID del cliente.
+        collection = this.afs.collection<AppointmentModel>(collectionPath, ref =>
+          ref.where('clientId', '==', userIdentifier) 
         );
+
       } else {
         // Rol desconocido o no autorizado
+        console.warn('Rol desconocido o usuario no autenticado. Devolviendo lista vacía.');
         return of([]);
       }
 
@@ -413,9 +415,7 @@ export class FirestoreService {
         })
       );
     });
-
   }
-
 
   async getAppointmentById(id: string): Promise<AppointmentModel | null> {
     return runInInjectionContext(this.injector, async () => {
@@ -443,4 +443,16 @@ export class FirestoreService {
       }
     })
   }
+
+  barbersUserData$: Observable<User[]> = runInInjectionContext(this.injector, () => {
+    
+    // 1. Obtener todos los usuarios cuyo campo 'role' es 'barber'
+    return this.afs.collection<User>(
+      'users', 
+      ref => ref.where('role', '==', 'admin') // CLAVE: Filtramos por el rol
+    ).valueChanges({ idField: 'uid' }) // Importante: obtenemos el UID del documento como 'uid'
+      // 3. Compartir el resultado
+      shareReplay({ bufferSize: 1, refCount: true })
+  });
+  
 }
