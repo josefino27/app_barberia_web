@@ -57,6 +57,8 @@ export class AppointmentsPage implements OnInit, OnDestroy {
   public barbers$!: Observable<Barber[]>;
   public services$!: Observable<any[]>; 
 
+  public fechaInicial: Date = new Date();
+
   constructor() {
     this.barbers$ = this.afs.barbers$.pipe(shareReplay(1));
     this.services$ = this.afs.services$.pipe(shareReplay(1));
@@ -119,8 +121,10 @@ export class AppointmentsPage implements OnInit, OnDestroy {
             date: appointmentDate 
           } as EnrichedAppointment;
         });
+        
         console.log("enrichedAppointments", enrichedAppointments);
-        return enrichedAppointments.filter(appointment => {
+        
+        const filteredAppointments = enrichedAppointments.filter(appointment => {
           
           // 1. Filtro por Barbero
           const barberMatch = (barberFilter === 'all' || appointment.barber === barberFilter);
@@ -155,6 +159,15 @@ export class AppointmentsPage implements OnInit, OnDestroy {
           
           return barberMatch && searchMatch2 && dateMatch;
         });
+        
+        // Ordenar las citas filtradas por fecha en orden ascendente
+        filteredAppointments.sort((a, b) => {
+            // getTime() devuelve el valor numérico de la fecha (milisegundos desde 1970)
+            // Esto permite una comparación sencilla y precisa.
+            return (a.date as Date).getTime() - (b.date as Date).getTime();
+        });
+
+        return filteredAppointments;
       }),
       tap(() => this.isLoading = false),
       shareReplay({ bufferSize: 1, refCount: true })

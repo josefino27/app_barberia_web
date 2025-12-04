@@ -1,22 +1,22 @@
 <app-navbar></app-navbar>
 
 <ion-content class="ion-padding">
-  <ion-header>
-    <ion-toolbar>
-      <ion-item>
-        <ion-buttons slot="start">
-          <ion-button routerLink="/appointment/form" expand="full">
+  <ion-toolbar>
+    <ion-buttons>
+      <ion-button routerLink="/appointment/form" expand="full">
+
+        <ion-header>
+          <ion-item>
             <ion-icon slot="start" name="add-circle-outline"></ion-icon>
             <ion-text>
               Agregar Cita
             </ion-text>
-          </ion-button>
-        </ion-buttons>
+          </ion-item>
+        </ion-header>
 
-      </ion-item>
-    </ion-toolbar>
-  </ion-header>
-
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
   <!-- SECCIÓN DE AGENDA RÁPIDA (SLOTS DE DISPONIBILIDAD) -->
   <!-- <div class="container py-2 mb-5 p-0">
     <h3 class="fw-bold mb-3">Agenda Rápida (Slots)</h3>
@@ -83,54 +83,37 @@
 
   <!-- SECCIÓN DE LISTA COMPLETA DE CITAS (Filtros y Contenido) -->
   <ion-text color="medium">
-    <h4 class="ion-padding-start mt-5">Lista Completa de Citas Agendadas</h4>
+    <h4 class="ion-padding-start mt-2">Lista Completa de Citas Agendadas</h4>
   </ion-text>
-
-  <hr class="mb-4">
-
-  <div class="container p-0">
-    <div class="row g-4 mb-4 d-flex align-items-center">
+  <ion-list>
+    <ion-item class="ion-padding-start mt-2">
       <!-- Búsqueda de Cliente -->
-      <div class="col-12 col-md-8 mb-3">
-        <ion-searchbar placeholder="Buscar por nombre de cliente" [(ngModel)]="searchTerm" debounce="300"
-          showClearButton="always" (ionInput)="onSearchChange($event)" class="form-control p-0 border-0 shadow-none"
-          style="--box-shadow: none;">
-        </ion-searchbar>
-
-      </div>
-       <!-- Selector de Fecha para FILTRO DE LISTA -->
-      <div class="col-12 col-md-4 mb-3">
-        <ion-item class="rounded-item shadow-sm" lines="none">
-          <ion-label position="stacked">Fecha: </ion-label>
-          <!-- ion-note para mostrar el valor seleccionado -->
-          <ion-note slot="end" class="ion-padding-end">
-            <!-- {{ selectedDateValue === 'all' ? 'Todas' : (selectedBarberForSlots | date: 'dd/MM/yyyy') }} -->
-            {{ selectedDateValue === 'all' ? 'Todas las fechas' : (selectedDateValue | date: 'dd/MM/yyyy') }}
-          </ion-note>
-          <ion-datetime-button 
-          class="ion-padding-top ion-text-center"
-          datetime="datetime"></ion-datetime-button>
-
-          <!-- Botón para limpiar el filtro dentro del modal -->
-          <div class="ion-padding-top ion-text-center">
-            <ion-button fill="clear" color="danger" (click)="clearDateFilter()">
-              <ion-icon name="close-circle-outline" slot="start"></ion-icon>
-              Limpiar Filtro
-            </ion-button>
-          </div>
-        </ion-item>
-      </div>
-    </div>
-  </div>
-  
-
-      <ion-modal [keepContentsMounted]="true">
-        <ng-template>
-          <ion-datetime id="datetime" presentation="date" (ionChange)="onDateChange($event)"
-            [showDefaultButtons]="false">
-          </ion-datetime>
-        </ng-template>
-      </ion-modal>
+      <ion-searchbar placeholder="Buscar por nombre de cliente" [(ngModel)]="searchTerm" debounce="300"
+        showClearButton="always" (ionInput)="onSearchChange($event)" class="form-control p-0 border-0 shadow-none"
+        style="--box-shadow: none;">
+      </ion-searchbar>
+    </ion-item>
+    <!-- Selector de Fecha para FILTRO DE LISTA -->
+    <ion-item>
+      <ion-button id="date">Filtrar Fecha</ion-button>
+      <!-- ion-note para mostrar el valor seleccionado -->
+      <ion-note slot="end" class="ion-padding-end">
+        <!-- {{ selectedDateValue === 'all' ? 'Todas' : (selectedBarberForSlots | date: 'dd/MM/yyyy') }} -->
+        {{ selectedDateValue === 'all' ? 'Todas las fechas' : (selectedDateValue | date: 'dd/MM/yyyy') }}
+      </ion-note>
+      <ion-button fill="clear" color="danger" (click)="clearDateFilter()">
+        <ion-icon name="close-circle-outline" slot="start"></ion-icon>
+        Limpiar Filtro Fecha
+      </ion-button>
+    </ion-item>
+  </ion-list>
+  <ion-popover trigger="date">
+    <ng-template>
+      <ion-datetime 
+      presentation="date" locale="es-ES" cancelText="Cancelar"
+        doneText="Confirmar" (ionChange)="onDateChange($event)" showDefaultButtons="true"></ion-datetime>
+    </ng-template>
+  </ion-popover>
 
   <!-- LISTA DE CITAS -->
   <ion-list *ngIf="(filteredAppointments$ | async) as appointments; else loadingOrEmpty" lines="full">
@@ -151,7 +134,7 @@
         <ion-label>
           <h2 class="fw-bold">{{ appointment.clientName }}</h2>
           <p>Servicio: {{ appointment.service }}</p>
-          <p>Barbero: {{ appointment.barber }}</p>
+          <p>Barbero: {{ appointment.barberName }}</p>
         </ion-label>
         <ion-note slot="end">
           <!-- Muestra la fecha y hora de la cita -->
