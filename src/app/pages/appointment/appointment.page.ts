@@ -3,12 +3,14 @@ import { CommonModule, DatePipe } from '@angular/common';
 import { FirestoreService } from 'src/app/services/firestore'; 
 import { AppointmentModel } from 'src/app/interfaces/appointment-model';
 import { Router, RouterLink } from '@angular/router';
-import { BehaviorSubject, map, Observable, combineLatest, of, tap, shareReplay } from 'rxjs'; 
+import { BehaviorSubject, map, Observable, combineLatest, of, tap, shareReplay, filter, take } from 'rxjs'; 
 import { FormsModule } from '@angular/forms';
 import { Barber } from 'src/app/interfaces/barber';
 import { IonicModule, ModalController } from '@ionic/angular'; 
 import { NavbarComponent } from 'src/app/components/navbar/navbar.component';
 import { Timestamp } from '@firebase/firestore'; 
+import { AuthService } from 'src/app/services/auth';
+import { User } from 'src/app/interfaces/user';
 
 // Tipo enriquecido
 type EnrichedAppointment = AppointmentModel & { barberName: string; serviceName: string; price: number; time: string; };
@@ -33,6 +35,7 @@ export class AppointmentsPage implements OnInit, OnDestroy {
   private afs = inject(FirestoreService);
   private router = inject(Router);
   modalController = inject(ModalController);
+  private authService = inject(AuthService);
 
   // --- Estado de la Lista / Filtros ---
   public isLoading: boolean = true;
@@ -56,7 +59,9 @@ export class AppointmentsPage implements OnInit, OnDestroy {
   // Datos de apoyo
   public barbers$!: Observable<Barber[]>;
   public services$!: Observable<any[]>; 
-
+  public userRole: 'client' | 'admin' | 'super_admin' | string = 'client'; 
+  public currentUser$: Observable<User | null> = this.authService.currentUser$;
+  
   public fechaInicial: Date = new Date();
 
   constructor() {
@@ -94,15 +99,27 @@ export class AppointmentsPage implements OnInit, OnDestroy {
       this.selectedBarberSubject,
       // 3. Emite la fecha seleccionada (Date o 'all')
       this.selectedDateSubject, 
+      this.authService.currentUser$.pipe(filter((user): user is User => !!user), take(1)) //  Obtener el usuario autenticado
+
     ]).pipe(
       tap(() => this.isLoading = true),
-      map(([appointments, barbers, services, term, barberFilter, dateFilter]) => {
-        
+      map(([appointments, barbers, services, term, barberFilter, dateFilter, currentUser]) => {
+
+        const userId = currentUser.id;
+        const userRole = currentUser.role;
+        let roleFilteredAppointments = appointments;
+        if (userRole === 'client') {
+            // Cliente: Solo sus propias citas
+            roleFilteredAppointments = appointments.filter(app => app.clientId === userId);
+        } else if (userRole === 'admin') {
+            // Admin: Solo citas agendadas para él
+            roleFilteredAppointments = appointments.filter(app => app.barberId === userId);
+        }
         // Mapas para enriquecer la data
         const barberMap = new Map(barbers.map(b => [b.id, b.userId]));
         const serviceMap = new Map(services.map(s => [s.id, s]));
 
-        const enrichedAppointments = appointments.map(appointment => {
+        const enrichedAppointments = roleFilteredAppointments.map(appointment => {
           const serviceData = serviceMap.get(appointment.service);
           
           // Convertir Timestamp a Date para obtener la hora local
@@ -129,14 +146,10 @@ export class AppointmentsPage implements OnInit, OnDestroy {
           // 1. Filtro por Barbero
           const barberMatch = (barberFilter === 'all' || appointment.barber === barberFilter);
           
-          // 2. Filtro por Término de Búsqueda
-          const searchMatch = term === '' || appointment.clientName.toLowerCase().includes(term) || appointment.barberName.toLowerCase().includes(term);
-          console.log("term", term);
           // 2. Filtrado por Término de Búsqueda (Nombre de Cliente)
           const lowerSearchTerm = term.toLowerCase();
-          const searchMatch2 =  appointment.clientName.toLowerCase().includes(lowerSearchTerm)
+          const searchMatch =  appointment.clientName.toLowerCase().includes(lowerSearchTerm)
 
-        
           // 3. Filtrado por Fecha Seleccionada
           let dateMatch = true;
           
@@ -157,7 +170,7 @@ export class AppointmentsPage implements OnInit, OnDestroy {
             dateMatch = appointmentDate >= startOfDay && appointmentDate <= endOfDay;
           }
           
-          return barberMatch && searchMatch2 && dateMatch;
+          return barberMatch && searchMatch && dateMatch;
         });
         
         // Ordenar las citas filtradas por fecha en orden ascendente

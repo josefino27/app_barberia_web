@@ -14,11 +14,8 @@ const routes: Routes = [
     path: 'usuarios',
     loadChildren: () => import('./pages/usuarios/usuarios.module').then(m => m.UsuariosPageModule),
     // --- APLICACIÓN DEL GUARD  ---
-    canActivate: [authGuard, roleGuardGuard],
-    // definimos los roles requeridos
-    data: {
-      roles: ['super_admin','admin'] // <-- requiredRoles será ['super_admin']
-    }
+    canActivate: [authGuard],
+    
   },
   {
     path: 'home',
