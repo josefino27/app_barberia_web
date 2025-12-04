@@ -14,11 +14,10 @@
     <ion-item>
       <ion-label position="floating">Barbero</ion-label>
       <ion-select interface="modal" formControlName="barber">
-      @for (barber of barbers$ | async; track barber.id) {
+        @for (barber of barbers$ | async; track barber.id) {
         <ion-select-option [value]="barber.id">{{barber.name}}
         </ion-select-option>
-
-      }
+        }
       </ion-select>
     </ion-item>
     <ion-item>
@@ -30,7 +29,7 @@
       </ion-select>
     </ion-item>
 
-    @if (isViewing) {
+    @if (isViewing || isViewingDate) {
     <ion-item>
       <ion-label position="stacked">Fecha y Hora Actual de la Cita</ion-label>
       <h2>{{ formattedAppointmentDate }}</h2>
@@ -42,14 +41,26 @@
       </ion-button>
     </ion-item>
     }@else {
-    <ion-item>
-      <ion-label position="floating">Elige el Día</ion-label>
-      <ion-select interface="modal" [value]="selectedDate?.toISOString()" (ionChange)="onDaySelected($event)">
-        @for (day of days; track day.date) {
-        <ion-select-option [value]="day.date.toISOString()">{{ day.label }}</ion-select-option>
-        }
-      </ion-select>
-    </ion-item>
+
+    <ion-list>
+      <ion-list-header>
+        <ion-label>Fecha de la Cita</ion-label>
+      </ion-list-header>
+      <ion-item>
+        <ion-datetime-button datetime="date-picker-modal" [disabled]="isViewing">
+        </ion-datetime-button>
+
+        <!-- Modal del Selector de Fecha -->
+        <ion-modal [keepContentsMounted]="true">
+          <ng-template>
+            <ion-datetime id="date-picker-modal" formControlName="date" locale="es-ES"
+              [presentation]="datePickerPresentation" [max]="oneWeekFromNow" [value]="selectedDate"
+              (ionChange)="onDaySelected($event)" showDefaultButtons="true"></ion-datetime>
+          </ng-template>
+        </ion-modal>
+      </ion-item>
+    </ion-list>
+
     }
 
     @if (selectedDate && availableHours.length > 0 && !isViewing) {
@@ -60,22 +71,13 @@
       </ion-card-header>
       <ion-card-content>
         @for (hour of availableHours; track hour) {
-        <ion-chip (click)="selectHour(hour)" [outline]="selectedHour !== hour"
-          [color]="selectedHour === hour ? 'primary' : ''">
+        <ion-chip (click)="onHourSelected(hour)">
           <ion-label>{{ hour }}</ion-label>
         </ion-chip>
         }
       </ion-card-content>
     </ion-card>
 
-    <!-- <ion-item>
-      <ion-label position="floating">Elige la Hora</ion-label>
-      <ion-select interface="modal" [value]="selectedHour" (ionChange)="onHourSelected($event)">
-        @for (hour of availableHours; track hour) {
-        <ion-select-option [value]="hour">{{ hour }}</ion-select-option>
-        }
-      </ion-select>
-    </ion-item> -->
     } @else if (selectedDate && !isViewing) {
     <ion-card>
       <ion-card-content>

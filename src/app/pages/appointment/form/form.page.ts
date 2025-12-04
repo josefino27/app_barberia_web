@@ -1,7 +1,7 @@
 import { Component, EnvironmentInjector, inject, OnInit, runInInjectionContext } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormGroup, FormBuilder, Validators } from '@angular/forms';
-import { IonicModule, IonModal, IonDatetime, IonDatetimeButton, IonPicker, IonButton, AlertController } from '@ionic/angular';
+import { IonicModule, IonModal, IonDatetime, IonDatetimeButton, IonPicker, IonButton, AlertController, DatetimeCustomEvent } from '@ionic/angular';
 import { AppointmentModel } from 'src/app/interfaces/appointment-model';
 import { FirestoreService } from 'src/app/services/firestore';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
@@ -11,6 +11,7 @@ import { User } from 'src/app/interfaces/user';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
 import { AuthService } from 'src/app/services/auth';
 import { Barber } from 'src/app/interfaces/barber';
+import { BarberScheduleModel } from 'src/app/interfaces/horarios';
 
 @Component({
   selector: 'app-appointment-form',
@@ -28,6 +29,7 @@ export class AppointmentFormPage implements OnInit {
   appointmentId: string | null = null;
   formattedAppointmentDate: string | null = null;
   isViewing: boolean = false;
+  isViewingDate = false;
   errorMessage: string | null = null;
   barbero: string | undefined = undefined;
   days: { label: string, date: Date }[] = [];
@@ -39,6 +41,8 @@ export class AppointmentFormPage implements OnInit {
   public barbers$!: Observable<User[]>;
   // Simulación de la disponibilidad del barbero
   barberAvailability: string[] = ['09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '12:00', '12:30', '13:00', '13:30'];
+  timeSlotInterval: number = 15; // Intervalo de tiempo para los slots (e.g., 15 o 30 minutos)
+  datePickerPresentation: 'date' | 'date-time' | 'time' | 'month' | 'month-year' | 'year' = 'date';
 
   // Mapeo de duración de servicios
   private serviceDurations = {
@@ -63,12 +67,14 @@ export class AppointmentFormPage implements OnInit {
     }
   };
 
-  selectedBarberSchedule: { days: number[], hours: string[] } | null = null;
+  // selectedBarberSchedule: { days: number[], hours: string[] } | null = null;
+  selectedBarberSchedule: BarberScheduleModel[] = [];
 
 
   private serviceSubscription: Subscription | null | undefined = undefined;
   selectedBarber: string | null = null;
-  public firestoreuser = this.afauth.getCurrentUser.name;;
+  public firestoreuser = this.afauth.getCurrentUser.name;
+  combinedDate: Date = new Date();
 
   constructor(
     private formBuilder: FormBuilder,
@@ -84,7 +90,7 @@ export class AppointmentFormPage implements OnInit {
     // Configuración de las fechas
     const today = new Date();
     const oneWeekFromNow = new Date();
-    oneWeekFromNow.setDate(today.getDate() + 7);
+    oneWeekFromNow.setDate(today.getDate() + 30);
 
     this.today = today.toISOString();
     this.oneWeekFromNow = oneWeekFromNow.toISOString();
@@ -96,7 +102,7 @@ export class AppointmentFormPage implements OnInit {
     this.appointmentForm = this.formBuilder.group({
       barber: ['', Validators.required],
       service: ['', Validators.required],
-      date: [null, Validators.required],
+      date: [this.today, Validators.required],
       clientName: ['', Validators.required],
       clientEmail: ['', [Validators.required, Validators.email]],
       clientPhone: ['', Validators.required],
@@ -117,13 +123,17 @@ export class AppointmentFormPage implements OnInit {
       this.user = userData;
       console.log("barbers$: ", this.barbers$);
       console.log("Usuario actual en form cita: ", this.user?.name);
+      console.log("selectedBarber: ", this.selectedBarber);
 
       if (this.appointmentId) {
         console.log('CITA ID recibido:', this.appointmentId);
         this.isViewing = true;
         this.loadAppointmentForm(this.appointmentId);
       } else {
-        this.generateNext7Days();
+
+        let getBarberSchedule = this.firestoreService.getBarberSchedule(this.selectedBarber!, '');
+        console.log("getBarberSchedule ", getBarberSchedule)
+        //this.generateNext7Days();
 
         // Escuchamos los cambios en el servicio solo si es una nueva cita
         this.listenToFormChanges();
@@ -133,6 +143,36 @@ export class AppointmentFormPage implements OnInit {
       }
     });
 
+  }
+
+  public async onBarberChange(barberId: string | null): Promise<void> {
+    if (!barberId) {
+      this.selectedBarberSchedule = [];
+      return;
+    }
+
+    this.selectedBarber = barberId;
+    console.log("barberId ", barberId);
+    this.selectedBarberSchedule = [];
+    //this.isLoading = true;
+
+    try {
+      // 1. Obtener los documentos de horario para este barbero
+      // NOTA: Asumo que getBarberSchedule devuelve un array de BarberScheduleModel
+      const schedules = await this.firestoreService.getBarberSchedule(barberId, this.selectedDate!.toString());
+
+      // 2. Transformar los datos de Firestore al formato que necesitamos
+      //this.selectedBarberSchedule = this.transformSchedules(schedules);
+
+      console.log('Horario transformado:', schedules);
+
+    } catch (error) {
+      console.error('Error al cargar y transformar horarios:', error);
+      this.errorMessage = 'No se pudo cargar el horario del barbero.';
+      this.selectedBarberSchedule = [];
+    } finally {
+      //this.isLoading = false;
+    }
   }
 
   async presentAlertMultipleButtons(id: string) {
@@ -171,19 +211,21 @@ export class AppointmentFormPage implements OnInit {
     await alert.present();
   }
 
-  private listenToFormChanges() {
+  private async listenToFormChanges() {
     const serviceControl = this.appointmentForm.get('service');
     const barberControl = this.appointmentForm.get('barber');
+    const dateControl = this.appointmentForm.get('date');
 
-    if (serviceControl && barberControl) {
+    if (serviceControl && barberControl && dateControl) {
       this.serviceSubscription = combineLatest([
         serviceControl.valueChanges.pipe(startWith(serviceControl.value)),
-        barberControl.valueChanges.pipe(startWith(barberControl.value))
+        barberControl.valueChanges.pipe(startWith(barberControl.value)),
+        dateControl.valueChanges.pipe(startWith(dateControl.value))
       ])
-        .subscribe(([selectedService, selectedBarber]) => {
+        .subscribe(async ([selectedService, selectedBarber, selectedDate]) => {
           // Guarda el barbero seleccionado
           this.selectedBarber = selectedBarber;
-
+          this.selectedDate = selectedDate;
           // La duración del servicio se actualiza siempre, pero solo afecta al re-filtrado.
           const serviceKey = selectedService as keyof typeof this.serviceDurations;
           this.serviceDuration = this.serviceDurations[serviceKey] || 0;
@@ -191,10 +233,35 @@ export class AppointmentFormPage implements OnInit {
           // Si se selecciona un barbero, genera los días y carga las horas.
           // Esta es la parte clave: la carga de horas ya no depende del servicio.
           if (selectedBarber) {
-            this.selectedBarberSchedule = this.barberSchedules[selectedBarber as keyof typeof this.barberSchedules] || null;
-            this.generateNext7Days();
-            // Carga las horas disponibles del barbero.
-            this.loadAvailableHours();
+            //this.generateNext7Days();
+            this.selectedBarber = barberControl.value;
+            console.log("listenToFormChanges barberId ", this.selectedBarber);
+            console.log("listenToFormChanges selectedDate ", this.selectedDate);
+            this.selectedBarberSchedule = [];
+            //this.isLoading = true;
+            try {
+              if (this.selectedDate) {
+                this.selectedDate = dateControl.value;
+                console.log("dateControl ", this.selectedDate!.toString().split('T')[0]);
+                // 1. Obtener los documentos de horario para este barbero
+                this.selectedBarberSchedule = await this.firestoreService.getBarberSchedule(selectedBarber, this.selectedDate!.toString().split('T')[0]);
+                // 2. Transformar los datos de Firestore al formato que necesitamos
+                //this.selectedBarberSchedule = this.transformSchedules(schedules);
+                console.log('listenToFormChanges this.selectedBarberSchedule:', this.selectedBarberSchedule);
+                  // Carga las horas disponibles del barbero.
+                  this.loadAvailableHours();
+                
+              }
+              console.log('listenToFormChanges Horario transformado: selecteddate ', this.selectedDate);
+
+            } catch (error) {
+              console.error('Error al cargar y transformar horarios:', error);
+              this.errorMessage = 'No se pudo cargar el horario del barbero.';
+              this.selectedBarberSchedule = [];
+            } finally {
+              //this.isLoading = false;
+            }
+
           }
         });
     }
@@ -211,16 +278,8 @@ export class AppointmentFormPage implements OnInit {
     }
   }
 
-  onDaySelected(event: any) {
-    const selectedDateStr = event.detail.value;
-    this.selectedDate = new Date(selectedDateStr);
-    this.selectedHour = null;
-    this.loadAvailableHours();
-    console.log('selectedDate', this.selectedDate)
-  }
-
-  onHourSelected(event: any) {
-    const hour = event.detail.value;
+  onHourSelected(event: string) {
+    const hour = event;
     this.selectedHour = hour;
     console.log('this.selectedHour', this.selectedHour);
     if (this.selectedDate) {
@@ -232,42 +291,23 @@ export class AppointmentFormPage implements OnInit {
       const day = this.selectedDate.getDate();
 
       // Crea un nuevo objeto Date usando los componentes locales
-      const combinedDate = new Date(year, month, day, h, m, 0);
-      console.log('combinedDate', combinedDate);
-      this.appointmentForm.patchValue({ date: combinedDate });
+      this.combinedDate = new Date(year, month, day, h, m, 0);
+      console.log('combinedDate', this.combinedDate);
+      const dayFormatter = new Intl.DateTimeFormat('es-ES', {
+        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true,
+      });
+      this.formattedAppointmentDate = dayFormatter.format(this.combinedDate);
+      this.isViewingDate = true;
     }
   }
 
-  generateNext7Days() {
-    this.days = [];
-    if (!this.selectedBarberSchedule) {
-      return; // No hay barbero, no hay días para mostrar
-    }
-    for (let i = 0; i < 7; i++) {
-      const date = new Date();
-      date.setDate(date.getDate() + i);
-      const dayOfWeek = date.getDay();// 0 = Domingo, 1 = Lunes, etc.
-      if (this.selectedBarberSchedule.days.includes(dayOfWeek)) {
-
-        let label = '';
-        if (i === 0) {
-          label = 'Hoy';
-        } else if (i === 1) {
-          label = 'Mañana';
-        } else {
-          const dayFormatter = new Intl.DateTimeFormat('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
-          label = dayFormatter.format(date);
-        }
-        this.days.push({ label, date });
-      }
-    }
-  }
-
-  selectDay(day: { label: string, date: Date }) {
-    this.selectedDate = day.date;
+  onDaySelected(event: any) {
+    const selectedDateStr = event.detail.value;
+    console.log("this.selectedDateStr ", selectedDateStr);
+    this.selectedDate = new Date(selectedDateStr);
+    console.log("this.selectedDate ", this.selectedDate);
     this.selectedHour = null;
     this.loadAvailableHours();
-    console.log('selectedDate', this.selectedDate)
   }
 
   resetSelection() {
@@ -275,110 +315,155 @@ export class AppointmentFormPage implements OnInit {
     this.selectedHour = null;
     this.formattedAppointmentDate = null;
     this.appointmentForm.patchValue({ date: null });
+    this.isViewingDate = false;
+  }
+  /**
+     * Verifica si un slot de tiempo potencial entra en conflicto con alguna cita agendada.
+     * @param bookedAppointments Citas existentes para el día.
+     * @param slotStartMinutes Inicio del slot potencial (en minutos).
+     * @param slotEndMinutes Fin del slot potencial (en minutos).
+     */
+  private checkIfConflicting(
+    bookedAppointments: AppointmentModel[],
+    slotStartMinutes: number,
+    slotEndMinutes: number
+  ): boolean {
+    return bookedAppointments.some(appointment => {
+      const appointmentDate = appointment.date as Date;
+      const appointmentStartMinutes = appointmentDate.getHours() * 60 + appointmentDate.getMinutes();
+
+      // Asume que la duración de la cita agendada está en el modelo (de lo contrario, usar servicio/duración estándar)
+      // Usaremos la duración de servicio actual para simular la duración de la cita agendada si no está disponible.
+      const appointmentDuration = this.getServiceDuration(appointment.service);
+      const appointmentEndMinutes = appointmentStartMinutes + appointmentDuration;
+
+      // Conflicto si los intervalos se superponen:
+      // A inicia antes de que B termine Y A termina después de que B inicie.
+      return (
+        slotStartMinutes < appointmentEndMinutes &&
+        slotEndMinutes > appointmentStartMinutes
+      );
+    });
   }
 
-  async loadAvailableHours() {
+  // Función ficticia/simplificada para obtener duración del servicio (debería venir de Firestore)
+  getServiceDuration(serviceName: string): number {
+    const serviceDurations: { [key: string]: number } = {
+      'corte-hombre': 60,
+      'Afeitado': 30,
+      'Corte + Afeitado': 60,
+    };
+    return serviceDurations[serviceName] || 30; // 30 minutos por defecto
+  }
+
+  /**
+   * Helper para convertir "HH:mm" a minutos totales desde la medianoche.
+   */
+  private timeToMinutes(time: string): number {
+    const [h, m] = time.split(':').map(Number);
+    return h * 60 + m;
+  }
+
+  /**
+   * Función clave para cargar horas disponibles, corregida para generar y filtrar strings.
+   */
+  startMin: number = 0;
+  endMin: number = 0;
+
+  async loadAvailableHours(): Promise<void> {
     this.availableHours = [];
 
-    if (!this.selectedBarber || !this.selectedDate) {
+    // Verificación: Necesitamos barbero, fecha, duración del servicio y horario
+    if (!this.selectedBarber || !this.selectedDate || !this.selectedBarberSchedule || this.serviceDuration <= 0) {
+      // Si el barbero está seleccionado pero no tiene horario cargado, podemos asumir que está libre o no trabaja.
+      if (this.selectedBarber && !this.selectedBarberSchedule) {
+        console.log('Barbero seleccionado pero sin horario para este día.');
+      }
       return;
     }
+
+    const barberSchedule = this.selectedBarberSchedule;
 
     // Paso 1: Obtener las citas existentes para el barbero y día seleccionados.
     const bookedAppointments = await this.firestoreService.getAppointmentsForBarberAndDay(
       this.selectedBarber,
       this.selectedDate
     );
+    console.log("bookedAppointments ", bookedAppointments);
+    const startMinutes = barberSchedule.map(
+      start => {
+        this.startMin = this.timeToMinutes(start.startTime);
 
-    const barberHours = this.selectedBarberSchedule!.hours;
-
-    // Paso 2: Filtra las horas del barbero que entran en conflicto con citas existentes.
-    const availableBaseHours = barberHours.filter(hour => {
-      const [h, m] = hour.split(':').map(Number);
-      const startTimeInMinutes = h * 60 + m;
-      const endTimeInMinutes = startTimeInMinutes + 1; // Usamos 1 minuto como duración para el chequeo de conflicto inicial
-
-      // El método checkIfConflicting ya se encarga de la lógica de superposición
-      const hasConflict = this.checkIfConflicting(
-        bookedAppointments,
-        startTimeInMinutes,
-        endTimeInMinutes
-      );
-      return !hasConflict;
-    });
-
-    // Paso 3: Volver a filtrar las horas disponibles basándose en la duración del servicio.
-    const filteredByServiceDuration = availableBaseHours.filter(hour => {
-      const [h, m] = hour.split(':').map(Number);
-      const startTimeInMinutes = h * 60 + m;
-
-      // Busca la próxima cita agendada después de la hora actual
-      const nextBookedAppointment = bookedAppointments
-        .filter(app => {
-          const bookedAppTime = (app.date as Date).getHours() * 60 + (app.date as Date).getMinutes();
-          return bookedAppTime > startTimeInMinutes;
-        })
-        .sort((a, b) => {
-          const aTime = (a.date as Date).getHours() * 60 + (a.date as Date).getMinutes();
-          const bTime = (b.date as Date).getHours() * 60 + (b.date as Date).getMinutes();
-          return aTime - bTime;
-        })[0];
-
-      // Calcula el tiempo disponible en minutos
-      let availableTimeSlot = 0;
-      if (nextBookedAppointment) {
-        const nextAppointmentTime = (nextBookedAppointment.date as Date).getHours() * 60 + (nextBookedAppointment.date as Date).getMinutes();
-        availableTimeSlot = nextAppointmentTime - startTimeInMinutes;
-      } else {
-        // Si no hay más citas, calcula hasta el final del horario del barbero
-        const [lastHour, lastMinute] = this.selectedBarberSchedule!.hours[this.selectedBarberSchedule!.hours.length - 1].split(':').map(Number);
-        const lastBarberTime = lastHour * 60 + lastMinute;
-        availableTimeSlot = lastBarberTime - startTimeInMinutes;
+        return this.startMin;
       }
 
-      // Retorna true si la duración del servicio cabe en el espacio disponible
-      return this.serviceDuration <= availableTimeSlot;
-    });
+    )
+    // Convertir horas de inicio, fin y pausa a minutos
+    // NOTA: Asumiendo que las propiedades son 'start', 'end', 'breakStart', 'breakEnd' como strings "HH:mm"
+    // const startMinutes = this.timeToMinutes(barberSchedule.start);
+    const endMinutes = barberSchedule.map(
+      end => {
+        this.endMin = this.timeToMinutes(end.endTime);
+        return this.endMin;
+      }
+    )
 
-    this.availableHours = filteredByServiceDuration;
+    let breakStartMinutes = 0;
+    let breakEndMinutes = 0;
+
+    // if (barberSchedule.hasBreak && barberSchedule.breakStart && barberSchedule.breakEnd) {
+    //   breakStartMinutes = this.timeToMinutes(barberSchedule.breakStart);
+    //   breakEndMinutes = this.timeToMinutes(barberSchedule.breakEnd);
+    // }
+
+    const potentialHours: string[] = [];
+
+    // Paso 2: Generar todos los slots de tiempo y filtrar por disponibilidad (incluyendo la duración)
+    for (let time = this.startMin; time <= this.endMin - this.serviceDuration; time += this.timeSlotInterval) {
+      const slotStartMinutes = time;
+      const slotEndMinutes = time + this.serviceDuration;
+
+      // A. Filtro por Horario de Pausa
+      let isInBreak = false;
+      // if (barberSchedule.hasBreak && breakStartMinutes < breakEndMinutes) {
+      //     // El slot entra en conflicto con la pausa si se superpone
+      //     isInBreak = slotStartMinutes < breakEndMinutes && slotEndMinutes > breakStartMinutes;
+      // }
+
+      if (isInBreak) {
+        continue; // Saltar slots que caen en la pausa
+      }
+
+      // B. Filtro por Citas Existentes (superposición)
+      const hasConflict = this.checkIfConflicting(
+        bookedAppointments,
+        slotStartMinutes,
+        slotEndMinutes
+      );
+
+      if (!hasConflict) {
+        // C. Formatear y añadir el slot de inicio (string "HH:mm")
+        const hour = Math.floor(time / 60);
+        const minute = time % 60;
+        const formattedHour = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+        potentialHours.push(formattedHour);
+      }
+    }
+
+    // Paso 3: Asignar el resultado (que ahora es string[])
+    this.availableHours = potentialHours;
+    console.log("this.availableHours ", this.availableHours);
     this.selectedHour = null; // Limpia la hora seleccionada
   }
 
-  private checkIfConflicting(bookedAppointments: any[], newAppointmentStartTime: number, newAppointmentEndTime: number): boolean {
-    for (const bookedApp of bookedAppointments) {
-      const bookedAppDate = bookedApp.date as Date;
-      const bookedAppServiceDuration = this.serviceDurations[bookedApp.service as keyof typeof this.serviceDurations] || 0;
-
-      const bookedAppHour = bookedAppDate.getHours();
-      const bookedAppMinutes = bookedAppDate.getMinutes();
-      const bookedAppStartTime = bookedAppHour * 60 + bookedAppMinutes;
-      const bookedAppEndTime = bookedAppStartTime + bookedAppServiceDuration;
-
-      // Comprueba si hay una superposición de tiempo
-      const overlaps = (newAppointmentStartTime < bookedAppEndTime && newAppointmentEndTime > bookedAppStartTime);
-
-      if (overlaps) {
-        // Conflicto encontrado
-        return true;
-      }
-    }
-    // No se encontraron conflictos
-    return false;
-  }
-  selectHour(hour: string) {
-    this.selectedHour = hour;
-    if (this.selectedDate) {
-      const combinedDate = new Date(this.selectedDate.toISOString().split('T')[0] + 'T' + hour + ':00');
-      this.appointmentForm.patchValue({ date: combinedDate });
-    }
-  }
-
   async onSubmit() {
+    const appointmentData = this.appointmentForm.getRawValue();
+
     if (this.appointmentForm.valid) {
       const appointment: AppointmentModel = {
         service: this.appointmentForm.value.service,
         barber: this.appointmentForm.value.barber,
-        date: this.appointmentForm.value.date, // Convertimos el string a un objeto Date
+        date: this.combinedDate,
         clientName: this.appointmentForm.value.clientName,
         clientPhone: this.appointmentForm.value.clientPhone,
         status: 'agendada',
@@ -388,7 +473,7 @@ export class AppointmentFormPage implements OnInit {
       };
       console.log('appoinmentForm', appointment)
 
-      const appointmentData = this.appointmentForm.getRawValue();
+      console.log('appoinmentFormdata', appointmentData)
 
       if (this.appointmentId) {
         await this.firestoreService.updateAppointment(this.appointmentId, appointmentData);
@@ -426,10 +511,10 @@ export class AppointmentFormPage implements OnInit {
       this.serviceDuration = this.serviceDurations[serviceKey] || 0;
 
       // 2. Establece el horario del barbero para generar los días
-      this.selectedBarberSchedule = this.barberSchedules[this.selectedBarber as keyof typeof this.barberSchedules] || null;
+      //this.selectedBarberSchedule = this.barberSchedules[this.selectedBarber as keyof typeof this.barberSchedules] || null;
 
       // 3. Ahora que el barbero y su horario están listos, genera los días
-      this.generateNext7Days();
+      //this.generateNext7Days();
 
       // 4. Establece la fecha y hora seleccionadas
       this.selectedDate = userDocRef.date;
@@ -456,6 +541,23 @@ export class AppointmentFormPage implements OnInit {
 
   // }
 
+  onDateChange(event: any): void {
+    const value = event.detail.value;
+    console.log("fecha seleccionada: ", value);
+    // if (value === 'all' || value === null || value === undefined) {
+    //   this.selectedDateSubject.next('all');
+    //   this.selectedDateValue = 'all'; 
+    // } else {
+    //   // El valor es una string ISO de la fecha seleccionada
+    //   const dateObject = new Date(value);
+    //   this.selectedDateSubject.next(dateObject);
+    //   this.selectedDateValue = dateObject.toISOString(); 
+  }
+
+  getToday(): string {
+    // Usamos el DatePipe de Angular para formatear la fecha a ISO
+    return new Date().getDate().toLocaleString();
+  }
 
   ngOnDestroy() {
     // Es importante desuscribirse para evitar fugas de memoria

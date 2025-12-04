@@ -1,6 +1,6 @@
 import { EnvironmentInjector, inject, Injectable, runInInjectionContext } from '@angular/core';
-import { AngularFirestore, AngularFirestoreCollection } from '@angular/fire/compat/firestore';
-import { BehaviorSubject, firstValueFrom, Observable, of } from 'rxjs';
+import { AngularFirestore, AngularFirestoreCollection, QueryDocumentSnapshot } from '@angular/fire/compat/firestore';
+import { BehaviorSubject, firstValueFrom, from, Observable, of } from 'rxjs';
 import { catchError, map, shareReplay } from 'rxjs/operators';
 import { User } from '../interfaces/user';
 import { AppointmentModel } from '../interfaces/appointment-model';
@@ -8,6 +8,7 @@ import { Barber } from '../interfaces/barber';
 import { Service } from '../interfaces/service';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
 import { AuthService } from './auth';
+import { BarberScheduleModel } from '../interfaces/horarios';
 
 @Injectable({
   providedIn: 'root'
@@ -19,6 +20,9 @@ export class FirestoreService {
   private appointmentsCollection: AngularFirestoreCollection<AppointmentModel>;
   private barbersCollection: AngularFirestoreCollection<Barber>;
   private servicesCollection: AngularFirestoreCollection<Service>;
+  private schedulesCollection: AngularFirestoreCollection<BarberScheduleModel>;
+
+  private dailySchedulesCollectionPath = 'schedules'
 
   // BehaviorSubjects para almacenar la data en memoria
   private _users = new BehaviorSubject<User[]>([]);
@@ -32,21 +36,134 @@ export class FirestoreService {
   readonly barbers$ = this._barbers.asObservable();
   readonly services$ = this._services.asObservable();
 
+    
+    private injector = inject(EnvironmentInjector);
   constructor(
-    private readonly afs: AngularFirestore,
-    private readonly afa: AngularFireAuth,
+
+    private afs:AngularFirestore,
+    private afa:AngularFireAuth
+    
   ) {
     // Inicializa las conexiones a las colecciones
     this.usersCollection = this.afs.collection<User>('users');
     this.appointmentsCollection = this.afs.collection<AppointmentModel>('appointments');
     this.barbersCollection = this.afs.collection<Barber>('barbers');
     this.servicesCollection = this.afs.collection<Service>('services');
+    this.schedulesCollection = this.afs.collection<BarberScheduleModel>('schedules');
 
     // Carga inicial y suscripciones en el constructor
     this.loadUsers();
     this.loadAppointments();
     this.loadBarbers();
     this.loadServices();
+  }
+  
+   // --- 1. getBarberSchedule (Obtener Horarios Diarios con lectura única) ---
+  
+  /**
+   * Obtiene todos los horarios de disponibilidad (documentos) de un barbero.
+   * Utiliza la sintaxis de 'firstValueFrom' para una lectura única de datos.
+   * @param barberId El UID del barbero.
+   * @returns Una Promesa que resuelve en un array de horarios.
+   */
+  async getBarberSchedule(barberId: string, day: string): Promise<BarberScheduleModel[]> {
+    return runInInjectionContext(this.injector, async () => {
+      try {
+        // 1. Obtiene la referencia a la colección filtrada
+        const schedulesCollection = this.afs.collection<BarberScheduleModel>(
+            this.dailySchedulesCollectionPath,
+            // Agrega el filtro WHERE
+            ref => ref.where('barberId', '==', barberId)
+            .where('day', '==', day)
+        );
+
+        // 2. Ejecuta la consulta y espera el primer/único valor
+        const snapshot = await firstValueFrom(schedulesCollection.get());
+        
+        // 3. Mapea los documentos, incluyendo el ID
+        return snapshot.docs.map(doc => {
+            const data = doc.data() as BarberScheduleModel;
+            // Aquí puedes añadir la conversión de Timestamp si la propiedad 'day' lo fuera
+            return { id: doc.id, ...data } as BarberScheduleModel;
+        });
+
+      } catch (error) {
+        console.error("Error al obtener el horario del barbero:", error);
+        throw error;
+      }
+    });
+  }
+
+  // --- 2. setBarberSchedule (Guardar o Actualizar un Horario Diario) ---
+  
+  /**
+   * Guarda o actualiza un único horario diario, buscando por (barberId, day) si el ID no está presente.
+   * @param schedule El objeto BarberScheduleModel a guardar.
+   * @returns Una Promesa que resuelve a void.
+   */
+  async setBarberSchedule(schedule: BarberScheduleModel): Promise<void> {
+       runInInjectionContext(this.injector, async () => {
+
+        try {
+            // Separamos el ID para usarlo solo como referencia del documento, si existe
+            const { id, ...dataToSave } = schedule; 
+            
+            // 1. Caso de actualización por ID existente
+            if (id) {
+                const docRef = this.afs.doc(`${this.dailySchedulesCollectionPath}/${id}`);
+                // set() con { merge: true } funciona como setDoc de v9 para updates
+                await docRef.set(dataToSave, { merge: true });
+                return;
+            }
+
+            // 2. Caso de nueva creación o actualización por (barberId, day)
+            // Busca si ya existe un documento para ese barbero y día
+            
+            const schedulesCol = this.afs.collection<BarberScheduleModel>(
+                this.dailySchedulesCollectionPath,
+                ref => ref
+                    .where('barberId', '==', schedule.barberId)
+                    .where('day', '==', schedule.day) // Asumo que 'day' es una fecha en formato string
+            );
+
+            // Obtiene el snapshot de la búsqueda
+            const existingSnapshot = await firstValueFrom(schedulesCol.get());
+
+            if (!existingSnapshot.empty) {
+                // Si existe: Actualizar el documento encontrado (usa set con merge)
+                const existingId = existingSnapshot.docs[0].id;
+                const docRef = this.afs.doc(`${this.dailySchedulesCollectionPath}/${existingId}`);
+                await docRef.set(dataToSave, { merge: true });
+            } else {
+                // Si no existe: Crear un nuevo documento (usa add)
+                await this.schedulesCollection.add(dataToSave).then(docRef => docRef.id);
+            }
+        } catch (error) {
+            console.error("Error al guardar/actualizar el horario:", error);
+            throw error;
+        }
+
+       });
+    
+  }
+
+  // --- 3. deleteBarberSchedule (Eliminar un Horario Diario) ---
+
+  /**
+   * Elimina un horario diario específico (documento).
+   * @param scheduleId El ID del documento de horario a eliminar.
+   * @returns Una Promesa que resuelve a void.
+   */
+  async deleteBarberSchedule(scheduleId: string): Promise<void> {
+    return runInInjectionContext(this.injector, async () => {
+      try {
+        const docRef = this.afs.doc(`${this.dailySchedulesCollectionPath}/${scheduleId}`);
+        await docRef.delete();
+      } catch (error) {
+        console.error("Error al eliminar el horario:", error);
+        throw error;
+      }
+    });
   }
 
   // Nuevo Método Auxiliar para Consolidar la Conversión de Fechas
@@ -228,7 +345,6 @@ export class FirestoreService {
     }
   }
 
-  private readonly injector = inject(EnvironmentInjector);
 
   async updateUser(id: User['id'], user: User): Promise<void> {
 
@@ -249,23 +365,24 @@ export class FirestoreService {
     });
   }
 
-  async getAppointmentsForBarberAndDay(barberId: string, date: Date): Promise<any[]> {
+  async getAppointmentsForBarberAndDay(barberId: string, date: Date): Promise<AppointmentModel[]> {
 
     return runInInjectionContext(this.injector, async () => {
-
+      console.log("barberId ", barberId);
       const startOfDay = new Date(date);
       startOfDay.setHours(0, 0, 0, 0);
-
+      console.log("startOfDay ", startOfDay);
       const endOfDay = new Date(date);
       endOfDay.setHours(23, 59, 59, 999);
-
+      console.log("endOfDay ", endOfDay);
       const q = this.afs.collection('appointments', ref =>
-        ref.where('barber', '==', barberId)
+        ref.where('barberId', '==', barberId)
           .where('date', '>=', startOfDay)
           .where('date', '<=', endOfDay)
       );
-
+      console.log("q ", q);
       const snapshot = await q.get().toPromise();
+      console.log("snapshot ", snapshot);
 
       if (!snapshot || !snapshot.docs) {
         return [];
@@ -275,12 +392,15 @@ export class FirestoreService {
       const appointments = snapshot.docs.map(doc => {
         const data = doc.data() as AppointmentModel;
         const id = doc.id;
+        console.log("data, id, date ", data,id,data.date);
         return {
           ...data,
           id,
           date: (data.date as any)?.toDate ? (data.date as any).toDate() : data.date
         };
       });
+
+      
 
       return appointments;
 
@@ -451,8 +571,6 @@ export class FirestoreService {
       'users', 
       ref => ref.where('role', '==', 'admin') // CLAVE: Filtramos por el rol
     ).valueChanges({ idField: 'uid' }) // Importante: obtenemos el UID del documento como 'uid'
-      // 3. Compartir el resultado
-      shareReplay({ bufferSize: 1, refCount: true })
   });
   
 }
