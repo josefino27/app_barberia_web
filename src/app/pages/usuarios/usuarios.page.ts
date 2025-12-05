@@ -19,14 +19,6 @@ import { NavbarComponent } from "src/app/components/navbar/navbar.component";
   standalone: true
 })
 export class UsuariosPage implements OnInit {
-  @ViewChild('popover') popover!: HTMLIonPopoverElement;
-
-  isOpen = false;
-
-  presentPopover(e: Event) {
-    this.popover.event = e;
-    this.isOpen = true;
-  }
 
   user: User | null = null;
   currentUser: [] = [];
@@ -40,21 +32,11 @@ export class UsuariosPage implements OnInit {
   async goToForm() {
     this.r.navigate(['form'], { relativeTo: this.route });
   }
-  async goToAppointment(id: User['id']) {
-    this.popover.isOpen = false;
-    this.r.navigate(['appointment'], { replaceUrl: true });
-  }
-  async goToSchedule(id: User['id']) {
-    this.popover.isOpen = false;
-    this.r.navigate(['horarios'], { replaceUrl: true });
-  }
   async goToEdit(id: User['id']) {
-    this.popover.isOpen = false;
-    
-    this.r.navigate([`form/${id}`], { relativeTo: this.route });
-    console.log('id enviado: ', id);
-  }
-
+      
+      this.r.navigate([`form/${id}`], { relativeTo: this.route });
+      console.log('id enviado: ', id);
+    }
   
 
   constructor(
@@ -92,18 +74,7 @@ export class UsuariosPage implements OnInit {
 
     });
   }
-
-  async logout(){
-
-    this.isOpen = false;
-    await this.authService.logout();
-
-    this.r.navigate(['/login'], { replaceUrl: true });
-    
-  
-  }
-
-  
+ 
   
 }
 
