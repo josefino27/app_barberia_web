@@ -3,7 +3,7 @@ export interface User {
     name: string;
     photoUrl: string;
     email: string;
-    phone: string;
+    phone?: number;
     role: string;
     barberName?: string;
     isSubscribed

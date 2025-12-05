@@ -47,7 +47,7 @@ export class FormPage implements OnInit {
     this.userForm = this.formBuilder.group({
       name: ['', Validators.required],
       email: ['', [Validators.required, Validators.email]],
-      phone: ['', [Validators.required, Validators.minLength(10)]],
+      phone: [null, [Validators.required, Validators.minLength(10)]],
       role: ['', Validators.required],
       isSubscribed: [false, Validators.required],
     });
@@ -160,7 +160,7 @@ export class FormPage implements OnInit {
             console.log('Cancelar');
           }
         }, {
-          text: 'Okay',
+          text: 'Confirmar',
           handler: () => {
             try {
               // Llama al método de eliminación del servicio

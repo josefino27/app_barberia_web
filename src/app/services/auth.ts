@@ -130,12 +130,12 @@ async getIdToken(): Promise<string | null> {
       // 2. Si el perfil NO existe, crearlo con un rol por defecto
       const newProfile: User = {
         id: user.uid,
-        email: user.email || 'Ingresar Correo Electronico',
-        name: user.displayName || 'Ingresar Usuario',
+        email: user.email || '',
+        name: user.displayName || '',
         photoUrl: user.photoURL || '',
         role: 'client',
         barberName: '',
-        phone: 'Ingresar Numero de Telefono',
+        phone: undefined,
         isSubscribed: false
       };
 

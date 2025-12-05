@@ -1,13 +1,13 @@
 <app-navbar></app-navbar>
 
-<ion-content class="ion-padding">
+<ion-content [fullscreen]="true" class="ion-padding">
   <ion-toolbar>
     <ion-buttons>
       <ion-button routerLink="/appointment/form" expand="full">
 
         <ion-header>
           <ion-item>
-            <ion-icon slot="start" name="add-circle-outline"></ion-icon>
+            <ion-icon slot="start" name="add-circle"></ion-icon>
             <ion-text>
               Agregar Cita
             </ion-text>
@@ -95,10 +95,8 @@
     </ion-item>
     <!-- Selector de Fecha para FILTRO DE LISTA -->
     <ion-item>
-      <ion-button id="date">Filtrar Fecha</ion-button>
-      <!-- ion-note para mostrar el valor seleccionado -->
+      <ion-button slot="start" id="date" expand="block" >Filtrar Fecha</ion-button>
       <ion-note slot="end" class="ion-padding-end">
-        <!-- {{ selectedDateValue === 'all' ? 'Todas' : (selectedBarberForSlots | date: 'dd/MM/yyyy') }} -->
         {{ selectedDateValue === 'all' ? 'Todas las fechas' : (selectedDateValue | date: 'dd/MM/yyyy') }}
       </ion-note>
       <ion-button fill="clear" color="danger" (click)="clearDateFilter()">
@@ -127,7 +125,6 @@
       </ion-item>
     </div>
 
-    <!-- No necesitas un ng-template showAppointments si usas *ngIf arriba y *ngFor aquí -->
     <ion-item-sliding *ngFor="let appointment of appointments">
 
       <ion-item [routerLink]="['/appointment/form', appointment.id]" detail>
@@ -135,11 +132,12 @@
           <h2 class="fw-bold">{{ appointment.clientName }}</h2>
           <p>Servicio: {{ appointment.service }}</p>
           <p>Barbero: {{ appointment.barberName }}</p>
+          <p>Estado: {{ appointment.status }}</p>
         </ion-label>
-        <ion-note slot="end">
+        <h2 slot="end">
           <!-- Muestra la fecha y hora de la cita -->
           {{ appointment.date | date: 'dd/MM/yy hh:mm a' }}
-        </ion-note>
+        </h2>
       </ion-item>
 
       <ion-item-options side="end">
@@ -153,203 +151,9 @@
 
   <!-- Template para carga o lista vacía -->
   <ng-template #loadingOrEmpty>
-    <div class="ion-padding ion-text-center">
       <ion-spinner *ngIf="isLoading" name="crescent"></ion-spinner>
       <ion-text *ngIf="!isLoading && searchTerm === '' && selectedBarberForSlots === 'all'">
         <p>Aún no tienes citas agendadas.</p>
       </ion-text>
-    </div>
   </ng-template>
-
-  <!-- Modal de Confirmación de Eliminación (Mantenido) -->
-  <ion-modal [isOpen]="!!confirmDeleteId" [backdropDismiss]="false">
-    <ng-template>
-      <ion-header>
-        <ion-toolbar>
-          <ion-title>Confirmar Eliminación</ion-title>
-        </ion-toolbar>
-      </ion-header>
-      <ion-content class="ion-padding ion-text-center">
-        <p>¿Estás seguro de que deseas eliminar esta cita?</p>
-        <div class="d-flex justify-content-center gap-2">
-          <ion-button color="medium" (click)="cancelDelete()" [disabled]="isDeleting">
-            Cancelar
-          </ion-button>
-          <ion-button color="danger" (click)="confirmDelete()" [disabled]="isDeleting">
-            <ion-spinner *ngIf="isDeleting" slot="start" name="lines-small"></ion-spinner>
-            {{ isDeleting ? 'Eliminando...' : 'Eliminar' }}
-          </ion-button>
-        </div>
-      </ion-content>
-    </ng-template>
-  </ion-modal>
-
 </ion-content>
-
-<!-- Estilos CSS básicos para simular Bootstrap/Tailwind y asegurar la apariencia -->
-<style>
-  /* Base */
-  .container {
-    max-width: 1200px;
-    margin: 0 auto;
-  }
-
-  /* Utilidades de espaciado */
-  .py-4 {
-    padding-top: 1.5rem;
-    padding-bottom: 1.5rem;
-  }
-
-  .py-2 {
-    padding-top: 0.75rem;
-    padding-bottom: 0.75rem;
-  }
-
-  .mt-5 {
-    margin-top: 3rem;
-  }
-
-  .p-0 {
-    padding: 0 !important;
-  }
-
-  /* Utilidades de flexbox y grid (simulación de row/col) */
-  .row {
-    display: flex;
-    flex-wrap: wrap;
-    margin-left: -0.75rem;
-    margin-right: -0.75rem;
-  }
-
-  .col-12 {
-    width: 100%;
-    padding-left: 0.75rem;
-    padding-right: 0.75rem;
-  }
-
-  .col-md-9 {
-    flex: 0 0 75%;
-    max-width: 75%;
-  }
-
-  .col-md-3 {
-    flex: 0 0 25%;
-    max-width: 25%;
-  }
-
-  @media (max-width: 767px) {
-
-    .col-md-9,
-    .col-md-3 {
-      flex: 0 0 100%;
-      max-width: 100%;
-    }
-
-    .row {
-      margin-left: 0;
-      margin-right: 0;
-    }
-  }
-
-  .g-4 {
-    gap: 1.5rem;
-  }
-
-  .mb-4 {
-    margin-bottom: 1.5rem;
-  }
-
-  .mb-3 {
-    margin-bottom: 1rem;
-  }
-
-  .d-flex {
-    display: flex;
-  }
-
-  .justify-content-center {
-    justify-content: center;
-  }
-
-  .align-items-center {
-    align-items: center;
-  }
-
-  .gap-2>* {
-    margin-right: 0.5rem;
-  }
-
-  .gap-2>*:last-child {
-    margin-right: 0;
-  }
-
-  /* ESTILOS ESPECÍFICOS DE SLOTS */
-  .days-scroll {
-    overflow-x: auto;
-    white-space: nowrap;
-    padding-bottom: 5px;
-  }
-
-  .day-chip {
-    flex-shrink: 0;
-    margin-right: 8px;
-    cursor: pointer;
-    text-transform: capitalize;
-  }
-
-  .day-chip .day-number {
-    font-weight: bold;
-    font-size: 1.1em;
-    margin-left: 4px;
-  }
-
-  .slot-button {
-    height: 40px;
-    font-size: 0.9em;
-    --border-radius: 8px;
-    margin-bottom: 8px;
-    position: relative;
-    --padding-start: 4px;
-    --padding-end: 4px;
-    --box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  }
-
-  .slot-button[disabled] {
-    opacity: 0.6;
-    --background: var(--ion-color-light);
-    --color: var(--ion-color-medium);
-  }
-
-  .slot-button ion-icon {
-    font-size: 1.2em;
-    margin-right: 4px;
-  }
-
-  .fs-6 {
-    font-size: 1rem;
-  }
-
-  /* Estilos de Ionic */
-  ion-searchbar {
-    --box-shadow: none !important;
-    --border-radius: 8px;
-    --background: var(--ion-color-light);
-  }
-
-  ion-item.rounded-item {
-    --border-radius: 8px;
-    /* Asegura que no tenga padding horizontal que se superponga con ion-select/datetime-button */
-    --padding-start: 0;
-    --inner-padding-end: 0;
-    --background: var(--ion-color-light);
-  }
-
-  ion-item.rounded-item ion-label {
-    padding-left: 16px;
-  }
-
-  /* Estilos de Tipografía */
-  .fw-bold {
-    font-weight: bold;
-  }
-</style>

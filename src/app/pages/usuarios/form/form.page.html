@@ -24,7 +24,7 @@
     <ion-item>
 
       <ion-input class="formControl" id="Celular" placeholder="Ingresa tu numero de celular" type="tel"
-        formControlName="phone" error="required" message="Error, ingresa un telefono" />
+        formControlName="phone" />
 
     </ion-item>
     <ion-item>
@@ -48,8 +48,8 @@
 
     </ion-item>
     <ion-item>
-      <ion-button type="submit" fill="outline" expand="block" [disabled]="userForm.invalid">
-        <ion-icon slot="icon-only" ios="logo-apple" md="add-circle-outline"></ion-icon>
+      <ion-button type="submit" expand="block" [disabled]="userForm.invalid">
+        <ion-icon slot="icon-only" ios="logo-apple" md="add-circle"></ion-icon>
         {{ isViewing ? 'Editar Usuario' : 'Agregar Usuario' }}
       </ion-button>
       <!-- @if(user?.role === 'super_admin'){ -->

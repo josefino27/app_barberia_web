@@ -44,7 +44,6 @@ export class LoginPage implements OnInit {
   // --- Lógica de Inicio de Sesión (Correo/Contraseña) ---
   async login() {
     if (this.loginForm.invalid) {
-      this.loginForm.markAllAsTouched();
       this.errorMessage = 'Por favor, completa los campos correctamente.';
       return;
     }

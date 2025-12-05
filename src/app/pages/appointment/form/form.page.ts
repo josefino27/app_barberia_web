@@ -43,7 +43,7 @@ export class AppointmentFormPage implements OnInit {
   barberAvailability: string[] = ['09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '12:00', '12:30', '13:00', '13:30'];
   timeSlotInterval: number = 15; // Intervalo de tiempo para los slots (e.g., 15 o 30 minutos)
   datePickerPresentation: 'date' | 'date-time' | 'time' | 'month' | 'month-year' | 'year' = 'date';
-
+  barberName: string | null = null;
   // Mapeo de duración de servicios
   private serviceDurations = {
     'corte-hombre': 60, // en minutos
@@ -105,7 +105,7 @@ export class AppointmentFormPage implements OnInit {
       date: [this.today, Validators.required],
       clientName: ['', Validators.required],
       clientEmail: ['', [Validators.required, Validators.email]],
-      clientPhone: ['', Validators.required],
+      clientPhone: [null, Validators.required, Validators.min(10), Validators.max(10)],
     });
   }
 
@@ -131,8 +131,8 @@ export class AppointmentFormPage implements OnInit {
         this.loadAppointmentForm(this.appointmentId);
       } else {
 
-        let getBarberSchedule = this.firestoreService.getBarberSchedule(this.selectedBarber!, '');
-        console.log("getBarberSchedule ", getBarberSchedule)
+        // let getBarberSchedule = this.firestoreService.getBarberSchedule(this.selectedBarber!, '');
+        // console.log("getBarberSchedule ", getBarberSchedule)
         //this.generateNext7Days();
 
         // Escuchamos los cambios en el servicio solo si es una nueva cita
@@ -154,17 +154,17 @@ export class AppointmentFormPage implements OnInit {
     this.selectedBarber = barberId;
     console.log("barberId ", barberId);
     this.selectedBarberSchedule = [];
-    //this.isLoading = true;
+    // this.isLoading = true;
 
     try {
       // 1. Obtener los documentos de horario para este barbero
       // NOTA: Asumo que getBarberSchedule devuelve un array de BarberScheduleModel
-      const schedules = await this.firestoreService.getBarberSchedule(barberId, this.selectedDate!.toString());
+      // const schedules = await this.firestoreService.getBarberSchedule(barberId, this.selectedDate!.toString());
 
       // 2. Transformar los datos de Firestore al formato que necesitamos
-      //this.selectedBarberSchedule = this.transformSchedules(schedules);
+      // this.selectedBarberSchedule = this.transformSchedules(schedules);
 
-      console.log('Horario transformado:', schedules);
+      // console.log('onBarberChange | getBarberSchedule | Horario transformado:', schedules);
 
     } catch (error) {
       console.error('Error al cargar y transformar horarios:', error);
@@ -184,14 +184,14 @@ export class AppointmentFormPage implements OnInit {
       buttons: [
 
         {
-          text: 'Cancel',
+          text: 'Cancelar',
           role: 'cancel',
           cssClass: 'modal-button-cancel',
           handler: (blah) => {
             console.log('Cancelar');
           }
         }, {
-          text: 'Okay',
+          text: 'Confirmar',
           handler: () => {
             try {
               // Llama al método de eliminación del servicio
@@ -235,12 +235,35 @@ export class AppointmentFormPage implements OnInit {
           if (selectedBarber) {
             //this.generateNext7Days();
             this.selectedBarber = barberControl.value;
+            this.barbers$.pipe(
+              map(barbers => ({ selectedBarber, barbers })), take(1)
+            ).subscribe(({ selectedBarber, barbers }) => {
+              if (selectedBarber) {
+                // Buscar el objeto Barbero completo por su ID
+                const selectedBarberObject = barbers.find(b => b.id === selectedBarber);
+
+                // 3. Capturar y almacenar el nombre
+                this.barberName = selectedBarberObject?.name || null;
+                this.selectedBarber = selectedBarber;
+
+                console.log('Barbero ID seleccionado:', selectedBarber);
+                console.log('Barbero Nombre capturado:', this.barberName);
+
+                // Llamar a la lógica de carga de horarios (tu onBarberChange)
+                this.onBarberChange(selectedBarber);
+              } else {
+                this.barberName = null;
+                this.selectedBarber = null;
+                this.availableHours = [];
+              }
+            })
             console.log("listenToFormChanges barberId ", this.selectedBarber);
+            console.log("listenToFormChanges barberName ", this.barberName);
             console.log("listenToFormChanges selectedDate ", this.selectedDate);
             this.selectedBarberSchedule = [];
             //this.isLoading = true;
             try {
-              if (this.selectedDate) {
+              if (this.selectedBarber && this.selectedDate) {
                 this.selectedDate = dateControl.value;
                 console.log("dateControl ", this.selectedDate!.toString().split('T')[0]);
                 // 1. Obtener los documentos de horario para este barbero
@@ -248,9 +271,9 @@ export class AppointmentFormPage implements OnInit {
                 // 2. Transformar los datos de Firestore al formato que necesitamos
                 //this.selectedBarberSchedule = this.transformSchedules(schedules);
                 console.log('listenToFormChanges this.selectedBarberSchedule:', this.selectedBarberSchedule);
-                  // Carga las horas disponibles del barbero.
-                  this.loadAvailableHours();
-                
+                // Carga las horas disponibles del barbero.
+                this.loadAvailableHours();
+
               }
               console.log('listenToFormChanges Horario transformado: selecteddate ', this.selectedDate);
 
@@ -462,14 +485,14 @@ export class AppointmentFormPage implements OnInit {
     if (this.appointmentForm.valid) {
       const appointment: AppointmentModel = {
         service: this.appointmentForm.value.service,
-        barber: this.appointmentForm.value.barber,
+        barber: this.barberName!,
         date: this.combinedDate,
         clientName: this.appointmentForm.value.clientName,
         clientPhone: this.appointmentForm.value.clientPhone,
         status: 'agendada',
-        clientEmail: 'jodanu19@gmail.com',
-        clientId: '1vkew069EMdv4UARyVPzDzkbxhH2',
-        barberId: 'ZliXcU4txNSDyLkuzBc6iVJ4v3g1'
+        clientEmail: this.appointmentForm.value.clientEmail,
+        clientId: this.user?.id!,
+        barberId: this.selectedBarber!
       };
       console.log('appoinmentForm', appointment)
 
@@ -491,7 +514,6 @@ export class AppointmentFormPage implements OnInit {
       }
     }
     if (this.appointmentForm.invalid) {
-      this.appointmentForm.markAllAsTouched(); // <--- Aquí se usa
       this.errorMessage = 'Por favor, completa los campos correctamente.';
       return;
     }

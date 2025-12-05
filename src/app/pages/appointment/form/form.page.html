@@ -9,21 +9,27 @@
   </ion-toolbar>
 </ion-header>
 
-<ion-content>
+<ion-content [fullscreen]="true">
   <form [formGroup]="appointmentForm" (ngSubmit)="onSubmit()">
     <ion-item>
-      <ion-label position="floating">Barbero</ion-label>
-      <ion-select interface="modal" formControlName="barber">
+      <ion-select label="Selecciona un Barbero" 
+      label-placement="floating" class="formControl" 
+      cancelText="Cerrar" formControlName="barber">
         @for (barber of barbers$ | async; track barber.id) {
-        <ion-select-option [value]="barber.id">{{barber.name}}
+        <ion-select-option [value]="barber.id">
+          {{barber.name}}
         </ion-select-option>
         }
       </ion-select>
     </ion-item>
     <ion-item>
-      <ion-label position="floating">Servicio</ion-label>
-      <ion-select interface="modal" formControlName="service">
-        <ion-select-option value="corte-hombre">Corte Hombre</ion-select-option>
+      <ion-select 
+      label="Selecciona un Servicio" 
+      label-placement="floating" class="formControl" 
+      cancelText="Cerrar"
+      formControlName="service">
+        <ion-select-option 
+        selected aria-selected="true" value="corte-hombre">Corte Hombre</ion-select-option>
         <ion-select-option value="arreglo-barba">Arreglo de Barba</ion-select-option>
         <ion-select-option value="tinte">Tinte de Cabello</ion-select-option>
       </ion-select>
@@ -41,26 +47,22 @@
       </ion-button>
     </ion-item>
     }@else {
+    @if(selectedBarber && this.serviceDuration){
+    <ion-item>
+      <ion-label position="floating">Fecha de la Cita</ion-label>
 
-    <ion-list>
-      <ion-list-header>
-        <ion-label>Fecha de la Cita</ion-label>
-      </ion-list-header>
-      <ion-item>
-        <ion-datetime-button datetime="date-picker-modal" [disabled]="isViewing">
-        </ion-datetime-button>
+      <ion-datetime-button datetime="date-picker-modal" [disabled]="isViewing">
+      </ion-datetime-button>
+      <ion-modal [keepContentsMounted]="true">
+        <ng-template>
+          <ion-datetime id="date-picker-modal" formControlName="date" locale="es-ES"
+            [presentation]="datePickerPresentation" [max]="oneWeekFromNow" [value]="selectedDate"
+            (ionChange)="onDaySelected($event)" showDefaultButtons="true"></ion-datetime>
+        </ng-template>
+      </ion-modal>
 
-        <!-- Modal del Selector de Fecha -->
-        <ion-modal [keepContentsMounted]="true">
-          <ng-template>
-            <ion-datetime id="date-picker-modal" formControlName="date" locale="es-ES"
-              [presentation]="datePickerPresentation" [max]="oneWeekFromNow" [value]="selectedDate"
-              (ionChange)="onDaySelected($event)" showDefaultButtons="true"></ion-datetime>
-          </ng-template>
-        </ion-modal>
-      </ion-item>
-    </ion-list>
-
+    </ion-item>
+    }
     }
 
     @if (selectedDate && availableHours.length > 0 && !isViewing) {
@@ -71,7 +73,8 @@
       </ion-card-header>
       <ion-card-content>
         @for (hour of availableHours; track hour) {
-        <ion-chip (click)="onHourSelected(hour)">
+        <ion-chip (click)="onHourSelected(hour)" [outline]="selectedHour !== hour"
+          [color]="selectedHour === hour ? 'primary' : ''" class="ion-margin-bottom ion-margin-end">>
           <ion-label>{{ hour }}</ion-label>
         </ion-chip>
         }
@@ -88,15 +91,15 @@
 
     <ion-item>
       <ion-label position="floating">Nombre</ion-label>
-      <ion-input type="text" formControlName="clientName"></ion-input>
+      <ion-input placeholder="Ingresa tu nombre completo" class="formControl" type="text" formControlName="clientName"></ion-input>
     </ion-item>
     <ion-item>
       <ion-label position="floating">Email</ion-label>
-      <ion-input type="text" formControlName="clientEmail"></ion-input>
+      <ion-input placeholder="Ingresa tu correo electronico" class="formControl" type="email" formControlName="clientEmail"></ion-input>
     </ion-item>
     <ion-item>
       <ion-label position="floating">Celular</ion-label>
-      <ion-input type="tel" formControlName="clientPhone"></ion-input>
+      <ion-input placeholder="Ingresa tu numero de celular" class="formControl" type="tel" formControlName="clientPhone"></ion-input>
     </ion-item>
 
     @if(errorMessage){
