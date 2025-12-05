@@ -373,6 +373,7 @@ export class FirestoreService {
           userToSave.phone = null as any; // Usar 'as any' para manejar la  diferencia de tipo
         }
         const docRef = await this.usersCollection.doc(uid).set(userToSave, { merge: true });
+        console.log('Usuario añadido con ID: ', userToSave.id);
 
 
       });
@@ -397,6 +398,7 @@ export class FirestoreService {
 
       const userDocRef = this.afs.doc<User>(`users/${id}`);
       userDocRef.update(userToSave);
+      console.log('Usuario actualizado con ID: ', id);
     });
   }
   async updateAppointment(id: AppointmentModel['id'], appointment: AppointmentModel): Promise<void> {
@@ -405,26 +407,28 @@ export class FirestoreService {
 
       const userDocRef = this.afs.doc<AppointmentModel>(`appointments/${id}`);
       userDocRef.update(appointment);
+      console.log('Cita actualizada con ID: ', id);
     });
   }
 
-  async getAppointmentsForBarberAndDay(barberId: string, date: Date): Promise<any[]> {
+  async getAppointmentsForBarberAndDay(barberId: string, date: Date): Promise<AppointmentModel[]> {
 
     return runInInjectionContext(this.injector, async () => {
-
+      console.log("barberId ", barberId);
       const startOfDay = new Date(date);
       startOfDay.setHours(0, 0, 0, 0);
-
+      console.log("startOfDay ", startOfDay);
       const endOfDay = new Date(date);
       endOfDay.setHours(23, 59, 59, 999);
-
+      console.log("endOfDay ", endOfDay);
       const q = this.afs.collection('appointments', ref =>
-        ref.where('barber', '==', barberId)
+        ref.where('barberId', '==', barberId)
           .where('date', '>=', startOfDay)
           .where('date', '<=', endOfDay)
       );
-
+      console.log("q ", q);
       const snapshot = await q.get().toPromise();
+      console.log("snapshot ", snapshot);
 
       if (!snapshot || !snapshot.docs) {
         return [];
@@ -434,12 +438,15 @@ export class FirestoreService {
       const appointments = snapshot.docs.map(doc => {
         const data = doc.data() as AppointmentModel;
         const id = doc.id;
+        console.log("data, id, date ", data, id, data.date);
         return {
           ...data,
           id,
           date: (data.date as any)?.toDate ? (data.date as any).toDate() : data.date
         };
       });
+
+
 
       return appointments;
 
@@ -450,12 +457,11 @@ export class FirestoreService {
 
     runInInjectionContext(this.injector, async () => {
       try {
-        const userDocRef = await this.afs.doc<User>(`users/${id}`);
-        
+        const userDocRef = this.afs.doc<User>(`users/${id}`);
+        userDocRef.delete();
         const userAuth = await this.afa.currentUser;
 
-        if (userAuth && userDocRef) {
-          await userDocRef.delete();
+        if (userAuth) {
           await userAuth?.delete();
           console.log('Usuario eliminado firestore');
           console.log("firebaseauth user eliminado");
@@ -482,6 +488,7 @@ export class FirestoreService {
       const userDocRef = this.afs.doc<User>(`appointments/${id}`);
       userDocRef.delete();
 
+      console.log('Cita eliminada con ID: ', id);
     });
   }
 
@@ -535,11 +542,6 @@ export class FirestoreService {
 
   }
 
-  /**
-   * Obtiene la colección de citas filtrada según el rol del usuario,
-   * retornando un Observable que se actualiza en tiempo real.
-   * FIX: Se elimina 'async' para que el retorno sea Observable<AppointmentModel[]>
-   */
   getAppointmentsByRoleLive(role: User | null, userIdentifier: string): Observable<AppointmentModel[]> {
 
     return runInInjectionContext(this.injector, () => {
@@ -550,21 +552,23 @@ export class FirestoreService {
         // Super Admin: ve todas las citas
         collection = this.afs.collection<AppointmentModel>(collectionPath);
 
-      } else if (role?.role === 'admin') {
-        // Admin/Barbero: ve solo las citas donde su ID coincide con el campo 'barberId'
+      } else if (role?.role === 'admin' || role?.role === 'barber') {
+        // 🔑 Admin/Barbero: ve solo las citas donde su ID coincide con el campo 'barberId'
         // UserIdentifier DEBE ser el UID del barbero.
         collection = this.afs.collection<AppointmentModel>(collectionPath, ref =>
           ref.where('barberId', '==', userIdentifier)
         );
+
       } else if (role?.role === 'client') {
-        // Cliente: ve solo sus propias citas donde su ID coincide con 'clientId'
+        // 🔑 Cliente: ve solo sus propias citas donde su ID coincide con 'clientId'
         // UserIdentifier DEBE ser el UID del cliente.
         collection = this.afs.collection<AppointmentModel>(collectionPath, ref =>
           ref.where('clientId', '==', userIdentifier)
         );
+
       } else {
         // Rol desconocido o no autorizado
-        console.log('Rol desconocido o usuario no autenticado. Devolviendo lista vacía.');
+        console.warn('Rol desconocido o usuario no autenticado. Devolviendo lista vacía.');
         return of([]);
       }
 
@@ -577,9 +581,7 @@ export class FirestoreService {
         })
       );
     });
-
   }
-
 
   async getAppointmentById(id: string): Promise<AppointmentModel | null> {
     return runInInjectionContext(this.injector, async () => {
@@ -610,13 +612,11 @@ export class FirestoreService {
 
   barbersUserData$: Observable<User[]> = runInInjectionContext(this.injector, () => {
 
+    // 1. Obtener todos los usuarios cuyo campo 'role' es 'barber'
     return this.afs.collection<User>(
       'users',
       ref => ref.where('role', '==', 'admin') // CLAVE: Filtramos por el rol
-    ).valueChanges({ idField: 'id' }).pipe( catchError(error => {
-        console.error("Error al cargar barberos (rol 'admin'): ", error);
-        return of([]);
-      }), shareReplay(1));
-    });
+    ).valueChanges({ idField: 'uid' }) // Importante: obtenemos el UID del documento como 'uid'
+  });
 
 }

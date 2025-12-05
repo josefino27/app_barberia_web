@@ -83,7 +83,8 @@ async getIdToken(): Promise<string | null> {
   // AngularFireAuth.currentUser is a Promise<firebase.User | null>
   const firebaseCurrentUser = await this.afAuth.currentUser;
   if (!firebaseCurrentUser) {
-    return null; // NO HAY USUARIO LOGUEADO
+    console.log("NO HAY USUARIO LOGUEADO");
+    return null; 
   }
 
   console.log('Current User:', firebaseCurrentUser);
@@ -143,9 +144,11 @@ async getIdToken(): Promise<string | null> {
       
       //await this.afs.setUsers(newProfile); // O el método que uses para añadir/actualizar
 
+      console.log('Perfil de Firestore creado automáticamente para UID:', user.email);
 
     } catch (error) {
       console.error('Error al verificar o crear el perfil de Firestore:', error);
+      // Manejo de errores (ej. mostrar toast)
     }
   }
 
@@ -176,6 +179,7 @@ async getIdToken(): Promise<string | null> {
     const result = await this.afAuth.signInWithPopup(provider);
 
     await this.checkAndCreateUserProfile(result.user);
+    console.log('Autenticación con Google exitosa. ');
 
     // --- Lógica de PRE-REGISTRO para Firestore (Creación de perfil) ---
     // 1. Verificar si el usuario ya tiene un perfil en Firestore
@@ -183,6 +187,7 @@ async getIdToken(): Promise<string | null> {
     const user = result.user;
 
         if (user) {
+          console.log('Usuario de Google autenticado:', user);
 
             // --- Lógica de PRE-REGISTRO para Firestore (Creación de perfil) ---
             
@@ -220,7 +225,7 @@ async getIdToken(): Promise<string | null> {
     // }
 
     //this.router.navigateByUrl('/appointment');
-    this.router.navigateByUrl('/usuarios', {replaceUrl: true});
+    this.router.navigate(['/usuarios'], {replaceUrl: true});
     console.log("result", result);
     return result;
 
@@ -236,7 +241,7 @@ async getIdToken(): Promise<string | null> {
     localStorage.removeItem('lastLoginTime');
 
     // Redirige al login después de cerrar sesión
-    this.router.navigateByUrl('/login', { replaceUrl: true });
+    this.router.navigate(['/login'], { replaceUrl: true });
   }
 
   /**
@@ -252,7 +257,7 @@ async getIdToken(): Promise<string | null> {
      * Registra usuario y envia link de restablecimiento de contraseña.
      */
   async createAccountAndSendSetupLink(email: string, userData: any): Promise<void> {
-    const TEMP_PASSWORD = 'Agendatucita+123'; // Contraseña temporal, debe ser segura
+    const TEMP_PASSWORD = 'TemporaryPassword123!'; // Contraseña temporal, debe ser segura
 
     try {
       // 1. Crear la cuenta en Firebase Authentication con la contraseña temporal
@@ -273,6 +278,7 @@ async getIdToken(): Promise<string | null> {
       // 4. ***PASO CLAVE: Forzar al usuario a definir su contraseña***
       await this.afAuth.sendPasswordResetEmail(email);
       
+      console.log(`Usuario creado (UID: ${uid}). Enlace de configuración enviado a ${email}.`);
       this.router.navigate(['/usuarios']);
 
     } catch (error: any) {

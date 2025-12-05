@@ -62,14 +62,9 @@ export class FormPage implements OnInit {
 
       this.authService.getCurrentUser().then(fire => this.isAuthenticated = fire)
 
-      if (this.isAuthenticated) {
 
-        console.log("isAuthenticatedForm: ", this.isAuthenticated);
-      }
       if (this.userId) {
         this.isViewing = true;
-        console.log("isAuthenticatedForm: ", this.isAuthenticated);
-        console.log('ID recibido:', this.userId);
         this.loadUserForm(this.userId);
 
       }
@@ -80,15 +75,11 @@ export class FormPage implements OnInit {
     if (this.userForm.valid) {
 
       const userData = this.userForm.getRawValue();
-      console.log("userdata", this.userId);
       if (this.userId) {
         const updatedUser: User = { id: this.userId, ...userData };
-        console.log('updatedUser-antes', updatedUser);
         await this.afs.updateUser(this.userId, userData);
-        console.log('Usuario actualizado:', updatedUser);
         this.router.navigate(['/usuarios']);
       } else {
-        console.log('else', userData);
 
         // 1. Crear la cuenta en Firebase Authentication
 
@@ -124,16 +115,11 @@ export class FormPage implements OnInit {
 
 
   async loadUserForm(id: string) {
-    console.log('id-loaduserform', id);
     this.user = await this.afs.getUserById(id);
-    console.log('id-user', this.user);
 
     if (this.user) {
       // Si el usuario existe, llena el formulario con sus datos
       this.userForm.patchValue(this.user);
-      console.log('loaduserform', this.user);
-    } else {
-      console.log('no hay loaduserform', this.user);
     }
   }
 
@@ -147,9 +133,9 @@ export class FormPage implements OnInit {
   async presentAlertMultipleButtons(id: string) {
     const alert = await this.alertController.create({
       cssClass: 'alert-buttons',
-      header: 'Eliminar Cita',
+      header: 'Eliminar Usuario',
       backdropDismiss: false,
-      message: `¿Estas seguro que deseas eliminar esta cita?`,
+      message: `¿Estas seguro que deseas eliminar esta usuario?`,
       buttons: [
 
         {
@@ -165,11 +151,11 @@ export class FormPage implements OnInit {
             try {
               // Llama al método de eliminación del servicio
               this.deleteUser(id);
-              this.router.navigate(['/appointment']);
+              this.router.navigate(['/usuarios']);
               // Opcional: mostrar un Toast de éxito
 
             } catch (error) {
-              console.error('Fallo al eliminar la cita:', error);
+              console.error('Fallo al eliminar usuario:', error);
               // Opcional: mostrar un Toast de error
 
             }

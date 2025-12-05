@@ -26,12 +26,7 @@ const routes: Routes = [
   },
   {
     path: 'form/:id',
-    loadChildren: () => import('./form/form.module').then( m => m.FormPageModule),
-     canActivate: [authGuard,roleGuardGuard],
-        // definimos los roles requeridos
-        data: {
-          roles: ['super_admin','admin','client'] 
-        }
+    loadChildren: () => import('./form/form.module').then( m => m.FormPageModule)
   },
     {
     path: 'appointment',
