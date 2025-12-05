@@ -1,58 +1,4 @@
 <app-navbar></app-navbar>
-<!-- <ion-header [translucent]="true">
-  <ion-toolbar>
-    <ion-buttons slot="start">
-      <ion-button defaultHref="/usuarios">
-        <ion-title>{{tittle}}</ion-title>
-      </ion-button>
-    </ion-buttons>
-    <ion-buttons slot="end">
-      @if (user){
-      <ion-button fill="clear" aria-label="User profile" (click)="presentPopover($event)" slot="end">
-        <ion-avatar>
-          <img [src]="user.photoUrl || 'assets/default-avatar.png'">
-        </ion-avatar>
-      </ion-button>
-      <ion-popover #popover [isOpen]="isOpen" (didDismiss)="isOpen = false">
-        <ng-template>
-          <ion-content>
-            <ion-grid>
-              <ion-row>
-                <ion-col>
-                  <ion-button fill="outline" expand="full" (click)="goToEdit(user.id)">Perfil</ion-button>
-                </ion-col>
-              </ion-row>
-              <ion-row>
-                <ion-col>
-                  <ion-button fill="outline" expand="full" (click)="goToAppointment(user.id)">Citas</ion-button>
-                </ion-col>
-              </ion-row>
-              @if(user.role === 'admin' || user.role === 'super_admin'){
-              <ion-row>
-                <ion-col>
-                  <ion-button fill="outline" expand="full" (click)="goToSchedule(user.id)">Horarios</ion-button>
-                </ion-col>
-              </ion-row>
-              }
-              <ion-row>
-                <ion-col>
-                  <ion-button fill="solid" expand="block" (click)="logout()">
-                    <ion-icon name="power-outline">
-
-                    </ion-icon>
-
-                    Cerrar Sesión</ion-button>
-                </ion-col>
-              </ion-row>
-            </ion-grid>
-          </ion-content>
-        </ng-template>
-      </ion-popover>
-      }
-    </ion-buttons>
-
-  </ion-toolbar>
-</ion-header> -->
 
 <ion-content [fullscreen]="true" class="ion-padding">
 
@@ -60,46 +6,19 @@
     <ion-toolbar>
       <ion-item>
         <ion-buttons slot="start">
-          <!-- <ion-button slot="start" (click)="goToAppointment(user?.id)">
-            <ion-icon slot="icon-only" name="calendar-number-outline"></ion-icon>
-          </ion-button> -->
+
           <ion-button (click)="goToForm()" expand="full">
             <ion-icon slot="start" name="add-circle-outline"></ion-icon>
             <ion-text>
               Agregar Usuario
             </ion-text>
           </ion-button>
-          <!-- <ion-button (click)="goToSchedule()">
-        <ion-icon slot="icon-only" name="calendar-outline"></ion-icon>
-      </ion-button> -->
-          <!-- <ion-button fill="clear" aria-label="User profile">
-            <ion-avatar>
-              <img [src]="users.photoUrl || 'assets/default-avatar.png'">
-            </ion-avatar>
-          </ion-button> -->
-
 
         </ion-buttons>
 
       </ion-item>
     </ion-toolbar>
   </ion-header>
-
-  <!-- <ng-container *ngIf="(users$ | async) as users">
-            <ion-button fill="clear" (click)="goToForm()" *ngIf="users.length; else defaultAvatar" aria-label="User profile">
-              <ion-avatar>
-                <img [src]="users[0]?.photoUrl || 'assets/default-avatar.png'">
-              </ion-avatar>
-            </ion-button>
-            <ng-template #defaultAvatar>
-              <ion-button fill="clear" (click)="goToForm()" aria-label="User profile">
-                <ion-avatar>
-                  <img src="assets/default-avatar.png">
-                </ion-avatar>
-              </ion-button>
-            </ng-template>
-          </ng-container> -->
-
 
   @for (user of users$ | async; track user.id) {
   <ion-card class="ion-text-center" (click)="goToEdit(user.id)">
