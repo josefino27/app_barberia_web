@@ -34,14 +34,14 @@ export const authGuard: CanActivateFn = (): Observable<boolean | UrlTree> => {
     map(firebaseUser => {
       // Si firebaseUser existe (el usuario está logueado)
       if (firebaseUser && !firebaseUser.isAnonymous) {
-        console.log('AuthGuard: Usuario autenticado. Acceso concedido.', firebaseUser);
+        //console.log('AuthGuard: Usuario autenticado. Acceso concedido.', firebaseUser);
         return true;
       }
 
       if (!firebaseUser) {
 
         // Si firebaseUser es null (el usuario no está logueado)
-        console.log('AuthGuard: Usuario NO autenticado. Redirigiendo a login.');
+        //console.log('AuthGuard: Usuario NO autenticado. Redirigiendo a login.');
         return redirect;
 
       }
@@ -75,7 +75,7 @@ export const authGuard: CanActivateFn = (): Observable<boolean | UrlTree> => {
           // Caso 3: Sesión registrada válida y dentro del tiempo.
           // Se actualiza la marca de tiempo para extender la sesión (mantenerla viva).
           localStorage.setItem('lastLoginTime', currentTime.toString());
-          console.log('Guard: Acceso permitido. Sesión válida y renovada.');
+          //console.log('Guard: Acceso permitido. Sesión válida y renovada.');
           return true;
         }
       } else {

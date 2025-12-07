@@ -52,7 +52,7 @@ export class UsuariosPage implements OnInit {
     this.popover.isOpen = false;
     
     this.r.navigate([`form/${id}`], { relativeTo: this.route });
-    console.log('id enviado: ', id);
+    //console.log('id enviado: ', id);
   }
 
   
@@ -75,10 +75,10 @@ export class UsuariosPage implements OnInit {
         
         this.user = userData;
 
-        console.log("Usuario actual: ", this.user);
+        //console.log("Usuario actual: ", this.user);
         if (this.user) {
-            console.log("Photo URL: ", this.user.photoUrl);
-            console.log("Email: ", this.user.email);
+            //console.log("Photo URL: ", this.user.photoUrl);
+            //console.log("Email: ", this.user.email);
         }
 
     } catch (error) {
@@ -88,7 +88,7 @@ export class UsuariosPage implements OnInit {
 
 
       this.cdr.detectChanges();
-      console.log("usuarios: ",this.users$," currentUser: ");
+      //console.log("usuarios: ",this.users$," currentUser: ");
 
     });
   }

@@ -84,7 +84,6 @@ async getIdToken(): Promise<string | null> {
     return null; // NO HAY USUARIO LOGUEADO
   }
 
-  console.log('Current User:', firebaseCurrentUser);
   return firebaseCurrentUser.getIdToken();
 }
 
@@ -120,7 +119,6 @@ async getIdToken(): Promise<string | null> {
 
       if (firestoreUser) {
         // El perfil ya existe, no hacer nada.
-        console.log('Perfil de Firestore ya existe para UID:', user.uid);
         return;
       }
 
@@ -219,9 +217,7 @@ async getIdToken(): Promise<string | null> {
 
     //this.router.navigateByUrl('/appointment');
     this.router.navigateByUrl('/usuarios', {replaceUrl: true});
-    console.log("result", result);
     return result;
-
   }
 
   /**

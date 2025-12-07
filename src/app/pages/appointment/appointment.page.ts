@@ -131,7 +131,7 @@ export class AppointmentsPage implements OnInit, OnDestroy {
 
           return {
             ...appointment,
-            barberName: barberMap.get(appointment.barber) || 'Barbero Desconocido',
+            barberName: (appointment.barber) || 'Barbero Desconocido',
             serviceName: serviceData?.name || 'Servicio Desconocido',
             price: serviceData?.price || 0,
             time: timeString,
@@ -139,7 +139,7 @@ export class AppointmentsPage implements OnInit, OnDestroy {
           } as EnrichedAppointment;
         });
         
-        console.log("enrichedAppointments", enrichedAppointments);
+        //console.log("enrichedAppointments", enrichedAppointments);
         
         const filteredAppointments = enrichedAppointments.filter(appointment => {
           
@@ -241,7 +241,7 @@ export class AppointmentsPage implements OnInit, OnDestroy {
   }
 
   editAppointment(id: string) {
-    console.log('Editando cita con ID:', id);
+    //console.log('Editando cita con ID:', id);
     this.router.navigate(['/appointment/form', id]); 
   }
 
@@ -261,7 +261,7 @@ export class AppointmentsPage implements OnInit, OnDestroy {
     this.isDeleting = true;
     try {
       await this.afs.deleteAppointmentById(this.confirmDeleteId);
-      console.log(`Cita ${this.confirmDeleteId} eliminada.`);
+      //console.log(`Cita ${this.confirmDeleteId} eliminada.`);
     } catch (error) {
       console.error('Fallo al eliminar la cita:', error);
     } finally {

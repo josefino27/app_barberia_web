@@ -20,7 +20,7 @@ export class HomePage implements OnInit {
 
     this.firestore.getUsers().subscribe(res => {
         this.users.push(...res);
-        console.log('Usuarios obtenidos:', this.users);
+        //console.log('Usuarios obtenidos:', this.users);
       });
         
     }

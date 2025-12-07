@@ -47,7 +47,7 @@ export class FormPage implements OnInit {
     this.userForm = this.formBuilder.group({
       name: ['', Validators.required],
       email: ['', [Validators.required, Validators.email]],
-      phone: [null, [Validators.required, Validators.minLength(10)]],
+      phone: [null, [Validators.minLength(10), Validators.maxLength(10)]],
       role: ['', Validators.required],
       isSubscribed: [false, Validators.required],
     });
@@ -58,7 +58,7 @@ export class FormPage implements OnInit {
   ngOnInit() {
     runInInjectionContext(this.injector, () => {
       this.userId = this.activatedRoute.snapshot.paramMap.get('id');
-      console.log("userId", this.userId);
+      //console.log("userId", this.userId);
 
       this.authService.getCurrentUser().then(fire => this.isAuthenticated = fire)
 
@@ -126,8 +126,7 @@ export class FormPage implements OnInit {
   async deleteUser(id: string) {
 
     await this.afs.deleteUserById(id);
-
-    this.router.navigate(['/usuarios']);
+    await this.router.navigateByUrl('/', { skipLocationChange: true });
   }
 
   async presentAlertMultipleButtons(id: string) {
@@ -143,7 +142,7 @@ export class FormPage implements OnInit {
           role: 'cancel',
           cssClass: 'modal-button-cancel',
           handler: () => {
-            console.log('Cancelar');
+            //console.log('Cancelar');
           }
         }, {
           text: 'Confirmar',

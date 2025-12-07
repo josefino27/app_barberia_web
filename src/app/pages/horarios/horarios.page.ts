@@ -87,7 +87,7 @@ export class HorariosPage implements OnInit {
     //this.isLoadingSchedule = true;
     try {
       this.allBarberSchedules = await this.firestoreService.getBarberSchedule(this.currentUser?.id!,'');
-      console.log(`Horarios cargados:`, this.allBarberSchedules);
+      //console.log(`Horarios cargados:`, this.allBarberSchedules);
     } catch (error) {
       console.error('Error al cargar los horarios del barbero:', error);
       // Limpia el horario en caso de error

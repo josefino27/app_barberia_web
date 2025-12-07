@@ -40,7 +40,7 @@ export class NavbarComponent  implements OnInit {
     this.popover.isOpen = false;
     
     this.r.navigate([`usuarios/form/${id}`], { replaceUrl: true });
-    console.log('id enviado: ', id);
+    //console.log('id enviado: ', id);
   }
 
   constructor(
@@ -56,10 +56,10 @@ export class NavbarComponent  implements OnInit {
     
     if(this.isAuthenticated){
       
-      console.log("isAuthenticated: ", this.isAuthenticated);
+      //console.log("isAuthenticated: ", this.isAuthenticated);
     }
     
-    console.log("NotisAuthenticated: ", this.isAuthenticated);
+    //console.log("NotisAuthenticated: ", this.isAuthenticated);
     this.cdr.detectChanges();
 
   }

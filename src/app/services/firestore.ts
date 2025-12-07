@@ -1,7 +1,7 @@
 import { EnvironmentInjector, inject, Injectable, runInInjectionContext } from '@angular/core';
 import { AngularFirestore, AngularFirestoreCollection, QueryDocumentSnapshot } from '@angular/fire/compat/firestore';
 import { BehaviorSubject, firstValueFrom, from, Observable, of } from 'rxjs';
-import { catchError, map, shareReplay } from 'rxjs/operators';
+import { catchError, map, shareReplay, take } from 'rxjs/operators';
 import { User } from '../interfaces/user';
 import { AppointmentModel } from '../interfaces/appointment-model';
 import { Barber } from '../interfaces/barber';
@@ -226,7 +226,7 @@ export class FirestoreService {
           map(appointments => this.mapTimestampsToDates(appointments))
         );
       } else if (userRole === 'barbero') {
-        console.log(`Cargando citas solo para: ${currentBarberName}`);
+        //console.log(`Cargando citas solo para: ${currentBarberName}`);
 
         // Creamos una referencia a la colección con el filtro 'where'
         const filteredCollection = this.afs.collection<AppointmentModel>(
@@ -245,14 +245,14 @@ export class FirestoreService {
         );
 
       } else if (userRole === 'client') {
-        console.log('Cargando todas client´s appointments.');
+        //console.log('Cargando todas client´s appointments.');
         // Creamos una referencia a la colección con el filtro 'where'
         const filteredCollection = this.afs.collection<AppointmentModel>(
           'appointments',
           ref =>
             ref.where('clientName', '==', currentBarberName)
         );
-        console.log("filteredCollection: ", currentBarberName);
+        //console.log("filteredCollection: ", currentBarberName);
         // Retorna un Observable de los cambios de la colección filtrada
         return filteredCollection.valueChanges({ idField: 'id' }).pipe(
           map(appointments =>
@@ -388,12 +388,12 @@ export class FirestoreService {
 
     runInInjectionContext(this.injector, () => {
 
-    const userToSave = { ...user };
+      const userToSave = { ...user };
 
-        // Si 'phone' es undefined 
-        if (userToSave.phone === undefined) {
-          userToSave.phone = null as any; // Usar 'as any' para manejar la  diferencia de tipo
-        }
+      // Si 'phone' es undefined 
+      if (userToSave.phone === undefined) {
+        userToSave.phone = null as any; // Usar 'as any' para manejar la  diferencia de tipo
+      }
 
       const userDocRef = this.afs.doc<User>(`users/${id}`);
       userDocRef.update(userToSave);
@@ -446,22 +446,34 @@ export class FirestoreService {
     });
   }
 
-  async deleteUserById(id: any): Promise<void> {
+  async deleteUserById(id: string): Promise<void> {
 
     runInInjectionContext(this.injector, async () => {
       try {
         const userDocRef = await this.afs.doc<User>(`users/${id}`);
-        
+
         const userAuth = await this.afa.currentUser;
 
-        if (userAuth && userDocRef) {
+        if (userAuth) {
+
+          const appointmentsSnapshot = await firstValueFrom(this.afs.collection<AppointmentModel>(
+            'appointments', 
+            ref => ref.where('userId', '==', id)
+        ).get().pipe(take(1)));
+
+          await userAuth.delete()
+          console.warn("No hay usuario autenticado para eliminar.");
+          throw new Error('No se puede eliminar la cuenta: el usuario no está logueado.');
+        }
+
+        if (userDocRef) {
+
           await userDocRef.delete();
-          await userAuth?.delete();
-          console.log('Usuario eliminado firestore');
-          console.log("firebaseauth user eliminado");
+          //console.log('Usuario eliminado firestore');
         } else {
-          console.log('Eror: Usuario No puede ser eliminado');
-          return;
+          //console.log('Eror: Usuario No puede ser eliminado');
+          throw new Error('No se puede eliminar la cuenta: el usuario no existe.');
+
 
         }
       } catch (error: any) {
@@ -564,7 +576,7 @@ export class FirestoreService {
         );
       } else {
         // Rol desconocido o no autorizado
-        console.log('Rol desconocido o usuario no autenticado. Devolviendo lista vacía.');
+        //console.log('Rol desconocido o usuario no autenticado. Devolviendo lista vacía.');
         return of([]);
       }
 
@@ -613,10 +625,10 @@ export class FirestoreService {
     return this.afs.collection<User>(
       'users',
       ref => ref.where('role', '==', 'admin') // CLAVE: Filtramos por el rol
-    ).valueChanges({ idField: 'id' }).pipe( catchError(error => {
-        console.error("Error al cargar barberos (rol 'admin'): ", error);
-        return of([]);
-      }), shareReplay(1));
-    });
+    ).valueChanges({ idField: 'id' }).pipe(catchError(error => {
+      console.error("Error al cargar barberos (rol 'admin'): ", error);
+      return of([]);
+    }), shareReplay(1));
+  });
 
 }
