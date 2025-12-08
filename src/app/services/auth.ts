@@ -1,11 +1,12 @@
 import { inject, Injectable, Injector, runInInjectionContext } from '@angular/core';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
 import firebase from 'firebase/compat/app';
 import { catchError, firstValueFrom, map, Observable, of, shareReplay, switchMap, tap } from 'rxjs';
 import { User } from '../interfaces/user'; // Tu interfaz de usuario
 import { FirestoreService } from './firestore';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
+import { LoadingController } from '@ionic/angular';
 
 @Injectable({
   providedIn: 'root'
@@ -14,20 +15,20 @@ export class AuthService {
 
   // Usuario de Firebase (solo la información de autenticación)
   public firebaseUser$ = this.afAuth.authState;
-  
+  isLoading: boolean = false;
   private usersCollectionName = 'users';
 
-  private injector = inject(Injector); 
+  private injector = inject(Injector);
 
   public currentUser$: Observable<User | null> = this.firebaseUser$.pipe(
-    
+
     switchMap(user => {
       if (user) {
         // 🔑 ERROR CORREGIDO: Usamos runInInjectionContext para envolver
         // la llamada a AngularFirestore.doc() y darle el contexto de inyección.
         return runInInjectionContext(this.injector, () => {
           return this.afst.doc<User>(`${this.usersCollectionName}/${user.uid}`).valueChanges().pipe(
-            
+
             map(profile => {
               if (profile) {
                 return { ...profile, uid: user.uid } as User;
@@ -47,7 +48,7 @@ export class AuthService {
         return of(null);
       }
     }),
-    
+
     // Asegura que el resultado de la tubería sea compartido
     tap(user => console.log('Estado de usuario actualizado:', user?.role || 'Desconectado')),
     shareReplay({ bufferSize: 1, refCount: true }),
@@ -61,10 +62,12 @@ export class AuthService {
     private afAuth: AngularFireAuth,
     private afs: FirestoreService,
     private afst: AngularFirestore,
-    private router: Router
-  ) { 
-    
-    
+    private router: Router,
+    private activatedRoute: ActivatedRoute,
+    private loadingController: LoadingController
+  ) {
+
+
   }
 
 
@@ -77,15 +80,15 @@ export class AuthService {
     return !!this.afAuth.currentUser;
   }
 
-async getIdToken(): Promise<string | null> {
-  // AngularFireAuth.currentUser is a Promise<firebase.User | null>
-  const firebaseCurrentUser = await this.afAuth.currentUser;
-  if (!firebaseCurrentUser) {
-    return null; // NO HAY USUARIO LOGUEADO
-  }
+  async getIdToken(): Promise<string | null> {
+    // AngularFireAuth.currentUser is a Promise<firebase.User | null>
+    const firebaseCurrentUser = await this.afAuth.currentUser;
+    if (!firebaseCurrentUser) {
+      return null; // NO HAY USUARIO LOGUEADO
+    }
 
-  return firebaseCurrentUser.getIdToken();
-}
+    return firebaseCurrentUser.getIdToken();
+  }
 
   /**
    * Obtiene el usuario actual de Firebase y fusiona su perfil de Firestore.
@@ -108,7 +111,7 @@ async getIdToken(): Promise<string | null> {
   }
 
   // Método auxiliar para garantizar la existencia del perfil en Firestore
-  private async checkAndCreateUserProfile(user: firebase.User | null): Promise<void> {
+  private async checkAndCreateUserProfile(user: firebase.User | null, bId: string | undefined): Promise<void> {
     if (!user) {
       return;
     }
@@ -129,14 +132,14 @@ async getIdToken(): Promise<string | null> {
         name: user.displayName || '',
         photoUrl: user.photoURL || '',
         role: 'client',
-        barberName: '',
+        barberId: bId || '',
         phone: undefined,
         isSubscribed: false
       };
 
       // Usa el método addUser del servicio de Firestore para guardar el documento
       await this.afs.setUsers(user.uid, newProfile);
-      
+
       //await this.afs.setUsers(newProfile); // O el método que uses para añadir/actualizar
 
 
@@ -154,10 +157,10 @@ async getIdToken(): Promise<string | null> {
   async signIn(email: string, password: string): Promise<firebase.auth.UserCredential> {
     const result = await this.afAuth.signInWithEmailAndPassword(email, password);
 
-    await this.checkAndCreateUserProfile(result.user);
+    // await this.checkAndCreateUserProfile(result.user);
 
     // **Acción Requerida por el Guard:** Guarda el timestamp en el login.
-      localStorage.setItem('lastLoginTime', Date.now().toString());
+    localStorage.setItem('lastLoginTime', Date.now().toString());
 
     // Redirige al dashboard o agenda después de que el usuario se autentica
     this.router.navigateByUrl('/appointment', { replaceUrl: true });
@@ -167,57 +170,26 @@ async getIdToken(): Promise<string | null> {
   /**
    * Inicia sesión con Google.
    */
-  async signInWithGoogle(): Promise<firebase.auth.UserCredential> {
+  async signInWithGoogle(bId: string | undefined): Promise<firebase.auth.UserCredential> {
     const provider = new firebase.auth.GoogleAuthProvider();
+    this.isLoading = true;
+    const loading = await this.loadingController.create({
+      message: 'Autenticando...',
+      spinner: 'crescent'
+    });
     const result = await this.afAuth.signInWithPopup(provider);
+    try {
+      await this.checkAndCreateUserProfile(result.user, bId);
+    } catch (error) {
+      console.error('Error autenticando:', error);
+    } finally {
+      await loading.dismiss();
+      this.isLoading = false;
+    }
+    this.router.navigateByUrl('/usuarios', { replaceUrl: true });
 
-    await this.checkAndCreateUserProfile(result.user);
-
-    // --- Lógica de PRE-REGISTRO para Firestore (Creación de perfil) ---
-    // 1. Verificar si el usuario ya tiene un perfil en Firestore
-
-    const user = result.user;
-
-        if (user) {
-
-            // --- Lógica de PRE-REGISTRO para Firestore (Creación de perfil) ---
-            
-            // 2. OBTENER EL UID
-            const uid = user.uid; 
-            
-            // 3. DATOS INICIALES DEL PERFIL
-            // const profileData: User = {
-            //     id: uid, 
-            //     email: user.email || 'Ingresar Correo Electronico',
-            //     name: user.displayName || 'Ingresar Nombre de Usuario',
-            //     photoUrl: user.photoURL || '',
-            //     role: 'client',
-            //     phone: user.phoneNumber || 'Ingresar Numero de Telefono',
-            //     barberName: '',
-            //     isSubscribed: false
-                
-            // };
-
-            // 4. CREACIÓN DEL DOCUMENTO DE FIRESTORE USANDO EL UID COMO ID
-            // Esto garantiza la coincidencia.
-            // await this.afs.setUsers(uid, profileData); 
-
-            // console.log('Usuario registrado y perfil creado con UID:', uid);
-        }
-    // --- Lógica de POST-REGISTRO para Firestore (Inicialización de datos) ---
-    // Si es un nuevo usuario, asegúrate de crear su documento en la colección 'users'
-    // if (result.additionalUserInfo?.isNewUser) {
-    //   await this.afs.setUsers({
-    //     id: result.user?.uid,
-    //     email: result.user?.email || '',
-    //     name: result.user?.displayName || 'Usuario' + Date.now(),
-    //     role: 'client' // Rol por defecto para un nuevo registro
-    //   } as User); // Usamos setUsers de FirestoreService
-    // }
-
-    //this.router.navigateByUrl('/appointment');
-    this.router.navigateByUrl('/usuarios', {replaceUrl: true});
     return result;
+
   }
 
   /**
@@ -266,7 +238,7 @@ async getIdToken(): Promise<string | null> {
 
       // 4. ***PASO CLAVE: Forzar al usuario a definir su contraseña***
       await this.afAuth.sendPasswordResetEmail(email);
-      
+
       this.router.navigate(['/usuarios']);
 
     } catch (error: any) {

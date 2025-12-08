@@ -29,6 +29,7 @@ export class AppointmentFormPage implements OnInit {
   appointmentId: string | null = null;
   formattedAppointmentDate: string | null = null;
   isViewing: boolean = false;
+  isViewingDispo: boolean = false;
   isViewingDate = false;
   errorMessage: string | null = null;
   barbero: string | undefined = undefined;
@@ -55,7 +56,7 @@ export class AppointmentFormPage implements OnInit {
   // selectedBarberSchedule: { days: number[], hours: string[] } | null = null;
   selectedBarberSchedule: BarberScheduleModel[] = [];
   isLoading: boolean = false;
-
+  lbSelectBarber:string= 'Selecciona un Barbero';
   private serviceSubscription: Subscription | null | undefined = undefined;
   selectedBarber: string | null = null;
   public firestoreuser = this.afauth.getCurrentUser.name;
@@ -69,8 +70,6 @@ export class AppointmentFormPage implements OnInit {
     private afauth: AuthService,
     private alertController: AlertController,
     private loadingController: LoadingController,
-    private toastController: ToastController
-
   ) {
     // Asegura que el FormGroup SIEMPRE esté definido antes de que el HTML se renderice
     this.initializeForm();
@@ -134,19 +133,17 @@ export class AppointmentFormPage implements OnInit {
       // NOTA: Asumo que getBarberSchedule devuelve un array de BarberScheduleModel
       // const schedules = await this.firestoreService.getBarberSchedule(barberId, this.selectedDate!.toString());
       if (!barberId) {
-        this.selectedBarberSchedule = [];
         return;
       }
       this.selectedBarber = barberId;
       // 2. Transformar los datos de Firestore al formato que necesitamos
       // this.selectedBarberSchedule = this.transformSchedules(schedules);
 
-      // console.log('onBarberChange | getBarberSchedule | Horario transformado:', schedules);
+       console.log('onBarberChange | getBarberSchedule | Horario transformado:', this.selectedBarber);
 
     } catch (error) {
       console.error('Error al cargar y transformar horarios:', error);
       this.errorMessage = 'No se pudo cargar el horario del barbero.';
-      this.selectedBarberSchedule = [];
     } finally {
       await loading.dismiss();
       this.isLoading = false; // ⬅️ Finaliza la carga
@@ -252,8 +249,8 @@ export class AppointmentFormPage implements OnInit {
               //this.selectedBarberSchedule = this.transformSchedules(schedules);
               //console.log('listenToFormChanges this.selectedBarberSchedule:', this.selectedBarberSchedule);
               // Carga las horas disponibles del barbero.
-              this.isViewingDate = false;
-              this.isViewing = true;
+              // this.isViewingDate = false;
+              // this.isViewing = true;
 
               this.loadAvailableHours(this.selectedBarberSchedule);
 
@@ -276,10 +273,13 @@ export class AppointmentFormPage implements OnInit {
       await loading.present();
       try {
         this.appointmentForm.patchValue({
+          barber:  this.user?.barberId,
           clientName: this.user.name,
           clientEmail: this.user.email,
           clientPhone: this.user.phone!
         });
+        this.appointmentForm.get('barber')?.disable();
+        this.lbSelectBarber = 'Barbero';
       } catch (error) {
         console.error('Error al cargar datos del formulario:', error);
         this.errorMessage = 'No se pudo cargar datos del formulario.';
@@ -311,11 +311,11 @@ export class AppointmentFormPage implements OnInit {
         weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true,
       });
       this.formattedAppointmentDate = dayFormatter.format(this.combinedDate);
-      this.isViewingDate = true;
       this.isViewing = true;
-      this.isSelectDisabled = true;
-
-      //console.log(new Date(this.formattedAppointmentDate));
+      this.isViewingDispo = false;
+      //this.isSelectDisabled = true;
+      this.appointmentForm.get('barber')?.disable();
+      console.log(new Date(this.formattedAppointmentDate));
 
     }
   }
@@ -327,7 +327,7 @@ export class AppointmentFormPage implements OnInit {
     //console.log("this.selectedDate ", this.selectedDate);
     this.selectedHour = null;
     this.isViewingDate = false;
-    this.isViewing = true
+    this.isViewingDispo = true;
     // this.loadAvailableHours();
   }
 
@@ -339,6 +339,7 @@ export class AppointmentFormPage implements OnInit {
     this.isViewingDate = true;
     this.isViewing = false;
     this.isSelectDisabled = false;
+    this.appointmentForm.get('barber')?.enable();
   }
 
   /**
@@ -429,11 +430,11 @@ export class AppointmentFormPage implements OnInit {
     }
 
 
-    console.log("this.startMin ", this.startMin);
+    // console.log("this.startMin ", this.startMin);
     // Convertir horas de inicio, fin y pausa a minutos
     // NOTA: Asumiendo que las propiedades son 'start', 'end', 'breakStart', 'breakEnd' como strings "HH:mm"
 
-    console.log("this.endMin ", this.endMin);
+    // console.log("this.endMin ", this.endMin);
     let breakStartMinutes = 0;
     let breakEndMinutes = 0;
     // const breakStart = barberSchedule.map(
@@ -492,7 +493,8 @@ export class AppointmentFormPage implements OnInit {
     this.availableHours = potentialHours;
     console.log("this.availableHours ", this.availableHours);
 
-    this.isViewing = false;
+    // this.isViewingDate = false;
+    // this.isViewing = true;
     this.selectedHour = null; // Limpia la hora seleccionada
 
   }
@@ -532,7 +534,7 @@ export class AppointmentFormPage implements OnInit {
         this.appointmentForm.reset();
         this.resetSelection();
         this.appointmentForm.patchValue({ date: null });
-        this.router.navigate(['/appointment']);
+        this.router.navigateByUrl('/appointment', {replaceUrl: true});
       }
     } catch (error) {
       console.error('Error al guardar la cita:', error);
@@ -596,12 +598,12 @@ export class AppointmentFormPage implements OnInit {
     //console.log("fecha seleccionada: ", value);
     // if (value === 'all' || value === null || value === undefined) {
     //   this.selectedDateSubject.next('all');
-    //   this.selectedDateValue = 'all'; 
+    //   this.selectedDateValue = 'all';
     // } else {
     //   // El valor es una string ISO de la fecha seleccionada
     //   const dateObject = new Date(value);
     //   this.selectedDateSubject.next(dateObject);
-    //   this.selectedDateValue = dateObject.toISOString(); 
+    //   this.selectedDateValue = dateObject.toISOString();
   }
 
   getToday(): string {

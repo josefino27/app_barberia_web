@@ -5,7 +5,7 @@ export interface User {
     email: string;
     phone?: number;
     role: string;
-    barberName?: string;
+    barberId?: string;
     isSubscribed
     : boolean;
 }

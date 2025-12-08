@@ -9,6 +9,7 @@
       <ion-card-subtitle>
         <ion-text>
           <h2>Ingresa para gestionar tu agenda y servicios.</h2>
+          @if(this.bId){<h2>con {{this.bId | titlecase}}.</h2>}
         </ion-text>
       </ion-card-subtitle>
     </ion-card-header>
@@ -30,9 +31,9 @@
   </ion-card>
 
 
-  <form [formGroup]="loginForm" (ngSubmit)="login()">
+  <!-- <form [formGroup]="loginForm" (ngSubmit)="login()"> -->
 
-    <ion-item lines="full" class="ion-margin-bottom">
+    <!-- <ion-item lines="full" class="ion-margin-bottom">
       <ion-label position="floating">Correo Electrónico</ion-label>
       <ion-input type="email" formControlName="email"></ion-input>
     </ion-item>
@@ -42,16 +43,16 @@
       @if(controlEmail?.errors?.['required']){<ion-note color="danger">El correo es obligatorio.</ion-note>}
       @if(controlEmail?.errors?.['email']){<ion-note color="danger">Formato de correo inválido.</ion-note>}
     </div>
-    }
+    } -->
 
 
-
+<!-- 
     <ion-item lines="full" class="ion-margin-bottom">
       <ion-label position="floating">Contraseña</ion-label>
       <ion-input type="password" formControlName="password"></ion-input>
-    </ion-item>
+    </ion-item> -->
 
-    @if(controlPassword?.invalid && (controlPassword?.dirty || controlPassword?.touched)){
+    <!-- @if(controlPassword?.invalid && (controlPassword?.dirty || controlPassword?.touched)){
 
     <div class="ion-padding-top ion-padding-bottom">
       @if(controlPassword?.errors?.['required']){
@@ -71,18 +72,18 @@
       <ion-note color="danger">{{ errorMessage }}</ion-note>
     </div>
 
-    }
+    } -->
 
 
 
-    <ion-button expand="full" type="submit" [disabled]="loginForm.invalid || isLoading" class="ion-margin-top">
+    <!-- <ion-button expand="full" type="submit" [disabled]="loginForm.invalid || isLoading" class="ion-margin-top">
       @if (isLoading) {
       <ion-spinner name="crescent"></ion-spinner>
       } @else {
       Iniciar Sesión
       }
-    </ion-button>
-  </form>
+    </ion-button> -->
+  <!-- </form> -->
   <!-- 
   <div class="ion-text-center ion-padding-vertical">
     <ion-text color="medium">

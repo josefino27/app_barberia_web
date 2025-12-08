@@ -16,8 +16,8 @@
   </div>
   <form [formGroup]="appointmentForm" (ngSubmit)="onSubmit()" *ngIf="!isLoading || appointmentForm.dirty">
     <ion-item>
-      <ion-select label="Selecciona un Barbero" label-placement="floating" class="formControl" cancelText="Cerrar"
-        [disabled]="isSelectDisabled" formControlName="barber">
+      <ion-select [label]="lbSelectBarber" label-placement="floating" class="formControl" cancelText="Cerrar"
+        formControlName="barber">
         @for (barber of barbers$ | async; track barber.id) {
         <ion-select-option [value]="barber.id">
           {{barber.name}}
@@ -34,7 +34,7 @@
       </ion-select>
     </ion-item>
 
-    @if (isViewing && isViewingDate || this.appointmentId) {
+    @if (isViewing || this.appointmentId) {
     <ion-item>
       <ion-label position="stacked">Fecha y Hora Actual de la Cita</ion-label>
       <h2>{{ formattedAppointmentDate }}</h2>
@@ -54,7 +54,7 @@
     }
 
     }
-    @if (this.selectedDate && this.availableHours && !this.isViewing) {
+    @if (isViewingDispo) {
     <ion-item>
       <ion-card>
         <ion-card-header>

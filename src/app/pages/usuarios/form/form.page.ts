@@ -126,7 +126,7 @@ export class FormPage implements OnInit {
   async deleteUser(id: string) {
 
     await this.afs.deleteUserById(id);
-    await this.router.navigateByUrl('/', { skipLocationChange: true });
+    await this.router.navigateByUrl('/', { replaceUrl: true });
   }
 
   async presentAlertMultipleButtons(id: string) {

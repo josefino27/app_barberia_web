@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { IonicModule } from '@ionic/angular';
+import { IonicModule, LoadingController } from '@ionic/angular';
 import { AuthService } from 'src/app/services/auth';
 
 @Component({
@@ -22,19 +22,23 @@ export class LoginPage implements OnInit {
   loginForm!: FormGroup;
   isLoading: boolean = false;
   errorMessage: string | null = null;
+  bId: string | null = null;
 
   constructor(
     private fb: FormBuilder,
     private authService: AuthService,
     private r: Router,
     private route: ActivatedRoute,
+    private activatedRoute: ActivatedRoute,
+    private loadingController: LoadingController,
   ) { }
 
   ngOnInit() {
-    this.loginForm = this.fb.group({
-      email: ['', [Validators.required, Validators.email]],
-      password: ['', [Validators.required, Validators.minLength(6)]]
-    });
+     this.bId = this.activatedRoute.snapshot.queryParamMap.get('bId');
+
+    if (this.bId) {
+        console.log(`Usuario invitado por barbero: ${this.bId}`);
+    }
   }
 
   async register() {
@@ -69,16 +73,21 @@ export class LoginPage implements OnInit {
   // --- Lógica de Inicio de Sesión con Google ---
   async signInWithGoogle() {
     this.isLoading = true;
-    this.errorMessage = null;
+    const loading = await this.loadingController.create({
+      message: 'Ingresando...',
+      spinner: 'crescent'
+    });
+    await loading.present();
 
     try {
       // Llama al método de Google del AuthService
-      await this.authService.signInWithGoogle();
+      await this.authService.signInWithGoogle(this.bId!);
       // La redirección también se maneja dentro del AuthService.
     } catch (error: any) {
       this.errorMessage = 'No se pudo iniciar sesión con Google. Intenta de nuevo.';
       console.error('Error de autenticación con Google:', error);
     } finally {
+      await loading.dismiss();
       this.isLoading = false;
     }
   }
