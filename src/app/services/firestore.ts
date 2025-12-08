@@ -411,21 +411,21 @@ export class FirestoreService {
   async getAppointmentsForBarberAndDay(barberId: string, date: Date): Promise<any[]> {
 
     return runInInjectionContext(this.injector, async () => {
-
+      console.log("service: ", date.toLocaleDateString);
       const startOfDay = new Date(date);
       startOfDay.setHours(0, 0, 0, 0);
-
+console.log("service startOfDay: ", startOfDay);
       const endOfDay = new Date(date);
       endOfDay.setHours(23, 59, 59, 999);
-
+console.log("service endOfDay: ", endOfDay);
       const q = this.afs.collection('appointments', ref =>
-        ref.where('barber', '==', barberId)
+        ref.where('barberId', '==', barberId)
           .where('date', '>=', startOfDay)
           .where('date', '<=', endOfDay)
       );
 
       const snapshot = await q.get().toPromise();
-
+console.log("service snapshot: ", snapshot);
       if (!snapshot || !snapshot.docs) {
         return [];
       }
@@ -440,7 +440,7 @@ export class FirestoreService {
           date: (data.date as any)?.toDate ? (data.date as any).toDate() : data.date
         };
       });
-
+console.log("service appointments: ", appointments);
       return appointments;
 
     });

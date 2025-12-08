@@ -10,10 +10,14 @@
 </ion-header>
 
 <ion-content [fullscreen]="true">
-  <form [formGroup]="appointmentForm" (ngSubmit)="onSubmit()">
+  <div *ngIf="isLoading && !appointmentForm.dirty" class="ion-text-center ion-padding">
+    <ion-spinner name="crescent"></ion-spinner>
+    <p>Cargando datos de la cita...</p>
+  </div>
+  <form [formGroup]="appointmentForm" (ngSubmit)="onSubmit()" *ngIf="!isLoading || appointmentForm.dirty">
     <ion-item>
       <ion-select label="Selecciona un Barbero" label-placement="floating" class="formControl" cancelText="Cerrar"
-        formControlName="barber">
+        [disabled]="isSelectDisabled" formControlName="barber">
         @for (barber of barbers$ | async; track barber.id) {
         <ion-select-option [value]="barber.id">
           {{barber.name}}
@@ -30,13 +34,13 @@
       </ion-select>
     </ion-item>
 
-    @if (isViewing && isViewingDate) {
+    @if (isViewing && isViewingDate || this.appointmentId) {
     <ion-item>
       <ion-label position="stacked">Fecha y Hora Actual de la Cita</ion-label>
       <h2>{{ formattedAppointmentDate }}</h2>
     </ion-item>
     <ion-item>
-      <ion-button expand="full" (click)="isViewing = false; resetSelection()">
+      <ion-button expand="full" (click)="resetSelection()">
         <ion-icon name="calendar" slot="start"></ion-icon>
         Cambiar Fecha y Hora
       </ion-button>
@@ -50,56 +54,57 @@
     }
 
     }
-    @if (selectedDate && this.availableHours && !isViewing) {
-    <ion-card>
-      <ion-card-header>
-        <ion-card-title>Disponibilidad</ion-card-title>
-        <ion-card-subtitle>{{ selectedDate | date:'fullDate' }}</ion-card-subtitle>
-      </ion-card-header>
-      <ion-card-content>
-        @for (hour of availableHours; track hour) {
-        <ion-chip (click)="onHourSelected(hour)" [outline]="selectedHour !== hour"
-          [color]="selectedHour === hour ? 'primary' : ''" class="ion-margin-bottom ion-margin-end">
-          <ion-label>{{ hour }}</ion-label>
-        </ion-chip>
-        }
-      </ion-card-content>
-    </ion-card>
-
-    } @else if (selectedDate && availableHours.length <= 0 && !isViewing) {
-    <ion-card>
+    @if (this.selectedDate && this.availableHours && !this.isViewing) {
+    <ion-item>
+      <ion-card>
+        <ion-card-header>
+          <ion-card-title>Disponibilidad</ion-card-title>
+          <ion-card-subtitle>{{ selectedDate | date:'fullDate' }}</ion-card-subtitle>
+        </ion-card-header>
+        <ion-card-content>
+          @for (hour of availableHours; track hour) {
+          <ion-chip (click)="onHourSelected(hour)" [outline]="selectedHour !== hour"
+            [color]="selectedHour === hour ? 'primary' : ''" class="ion-margin-bottom ion-margin-end">
+            <ion-label>{{ hour }}</ion-label>
+          </ion-chip>
+          }
+        </ion-card-content>
+      </ion-card>
+    </ion-item>
+    } @else if (selectedDate && availableHours.length <= 0 && !isViewing) { <ion-card>
       <ion-card-content>
         No hay horas disponibles para este día.
       </ion-card-content>
-    </ion-card>
-    } 
-    <ion-item>
-      <ion-label position="floating">Nombre</ion-label>
-      <ion-input placeholder="Ingresa tu nombre completo" class="formControl" type="text"
-        formControlName="clientName"></ion-input>
-    </ion-item>
-    <ion-item>
-      <ion-label position="floating">Email</ion-label>
-      <ion-input placeholder="Ingresa tu correo electronico" class="formControl" type="email"
-        formControlName="clientEmail"></ion-input>
-    </ion-item>
-    <ion-item>
-      <ion-label position="floating">Celular</ion-label>
-      <ion-input placeholder="Ingresa tu numero de celular" class="formControl" type="tel"
-        formControlName="clientPhone"></ion-input>
-    </ion-item>
+      </ion-card>
 
-    @if(errorMessage){
-    <div class="ion-padding-top ion-padding-bottom">
-      <ion-note color="danger">{{ errorMessage }}</ion-note>
-    </div>
-    }
+      }
+      <ion-item>
+        <ion-label position="stacked">Nombre</ion-label>
+        <ion-input placeholder="Ingresa tu nombre completo" class="formControl" type="text"
+          formControlName="clientName"></ion-input>
+      </ion-item>
+      <ion-item>
+        <ion-label position="stacked">Email</ion-label>
+        <ion-input placeholder="Ingresa tu correo electronico" class="formControl" type="email"
+          formControlName="clientEmail"></ion-input>
+      </ion-item>
+      <ion-item>
+        <ion-label position="stacked">Celular</ion-label>
+        <ion-input placeholder="Ingresa tu numero de celular" class="formControl" type="tel"
+          formControlName="clientPhone"></ion-input>
+      </ion-item>
 
-    <ion-button expand="full" type="submit" [disabled]="!appointmentForm.valid">
-      {{this.appointmentId? 'Actualizar Cita' : 'Agendar Cita' }}</ion-button>
-    @if(this.appointmentId){
-    <ion-button expand="full" type="button" (click)="presentAlertMultipleButtons(this.appointmentId!)">Cancelar
-      Cita</ion-button>
-    }
+      @if(errorMessage){
+      <div class="ion-padding-top ion-padding-bottom">
+        <ion-note color="danger">{{ errorMessage }}</ion-note>
+      </div>
+      }
+
+      <ion-button expand="full" type="submit" [disabled]="appointmentForm.invalid || isLoading">
+        {{this.appointmentId? 'Actualizar Cita' : 'Agendar Cita' }}</ion-button>
+      @if(this.appointmentId){
+      <ion-button expand="full" type="button" (click)="presentAlertMultipleButtons(this.appointmentId!)">Cancelar
+        Cita</ion-button>
+      }
   </form>
 </ion-content>

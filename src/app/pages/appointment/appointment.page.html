@@ -134,10 +134,10 @@
           <p>Barbero: {{ appointment.barberName }}</p>
           <p>Estado: {{ appointment.status }}</p>
         </ion-label>
-        <h2 slot="end">
+        <p slot="end">
           <!-- Muestra la fecha y hora de la cita -->
           {{ appointment.date | date: 'dd/MM/yy hh:mm a' }}
-        </h2>
+        </p>
       </ion-item>
 
       <ion-item-options side="end">
