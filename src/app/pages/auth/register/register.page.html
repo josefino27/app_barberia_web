@@ -1,0 +1,69 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/login"></ion-back-button>
+
+      <ion-button>
+        <ion-title>
+          {{ 'Registrar Usuario' }}
+        </ion-title>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <form class="form" [formGroup]="registerUserForm" (ngSubmit)="onSubmit()">
+
+    <ion-item>
+
+      <ion-input placeholder="Ingresa tu nombre completo" class="formControl" id="Nombre" type="text"
+        formControlName="name" />
+
+    </ion-item>
+    <ion-item>
+
+      <ion-input class="formControl" id="Celular" placeholder="Ingresa tu numero de celular" type="tel"
+        formControlName="phone" error="required" message="Error, ingresa un telefono" />
+
+    </ion-item>
+
+    <ion-item>
+      <ion-input class="formControl" placeholder="Ingresa tu correo electronico" id="Email" type="email"
+        formControlName="email" />
+    </ion-item>
+    <ion-item class="mb-4">
+      <ion-input label="Contraseña" labelPlacement="stacked" placeholder="Crear una contraseña (mín. 6 caracteres)"
+        type="password" formControlName="password">
+      </ion-input>
+    </ion-item>
+    <div *ngIf="f['password'].invalid && f['password'].touched" class="text-red-500 text-sm pl-4 mb-3">
+      <span *ngIf="f['password'].errors?.['required']">La contraseña es obligatoria.</span>
+      <span *ngIf="f['password'].errors?.['minlength']">Debe tener al menos 6 caracteres.</span>
+    </div>
+
+    <ion-item class="mb-4">
+      <ion-input label="Confirmar Contraseña" labelPlacement="stacked" placeholder="Repetir la contraseña"
+        type="password" formControlName="confirmPassword">
+      </ion-input>
+    </ion-item>
+
+    <div *ngIf="registerUserForm.errors?.['passwordMismatch'] && f['confirmPassword'].touched"
+      class="text-red-500 text-sm pl-4 mb-6 font-semibold">
+      Las contraseñas no coinciden.
+    </div>
+    <ion-item>
+      <ion-button type="submit" expand="block" [disabled]="registerUserForm.invalid">
+        <ion-icon slot="icon-only" ios="logo-apple" md="add-circle"></ion-icon>
+        {{ 'Registrarme' }}
+      </ion-button>
+      <ion-button (click)="returnLogin()" color="danger">
+        Cancelar
+      </ion-button>
+
+
+      <!-- // -->
+    </ion-item>
+  </form>
+
+</ion-content>

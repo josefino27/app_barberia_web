@@ -9,7 +9,7 @@
       @if (isAuthenticated){
       <ion-button fill="clear" aria-label="User profile" (click)="presentPopover($event)" slot="end">
         <ion-avatar>
-          <img [src]="isAuthenticated.photoUrl || 'assets/default-avatar.png'">
+          <img [src]="isAuthenticated.photoUrl || './assets/icon/default_avatar.jpg'">
         </ion-avatar>
       </ion-button>
       <ion-popover #popover [isOpen]="isOpen" (didDismiss)="isOpen = false">

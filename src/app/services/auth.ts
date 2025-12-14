@@ -7,6 +7,7 @@ import { User } from '../interfaces/user'; // Tu interfaz de usuario
 import { FirestoreService } from './firestore';
 import { AngularFirestore } from '@angular/fire/compat/firestore';
 import { LoadingController } from '@ionic/angular';
+import { getAuth, GoogleAuthProvider, signInWithRedirect } from 'firebase/auth';
 
 @Injectable({
   providedIn: 'root'
@@ -17,7 +18,12 @@ export class AuthService {
   public firebaseUser$ = this.afAuth.authState;
   isLoading: boolean = false;
   private usersCollectionName = 'users';
-
+  private actionCodeSettings = {
+    // URL a la que se redirigirá al usuario después de la confirmación
+    // Asegúrate de que esta URL esté en la lista de dominios autorizados de Firebase
+    url: 'http://localhost:8100/login', // <-- AJUSTA ESTA URL A TU DOMINIO REAL (ej. https://tudominio.com/login)
+    handleCodeInApp: true, // Debe ser 'true' para aplicaciones Ionic/Angular
+  };
   private injector = inject(Injector);
 
   public currentUser$: Observable<User | null> = this.firebaseUser$.pipe(
@@ -66,8 +72,7 @@ export class AuthService {
     private activatedRoute: ActivatedRoute,
     private loadingController: LoadingController
   ) {
-
-
+    this.handleSignInLink();
   }
 
 
@@ -163,8 +168,51 @@ export class AuthService {
     localStorage.setItem('lastLoginTime', Date.now().toString());
 
     // Redirige al dashboard o agenda después de que el usuario se autentica
-    this.router.navigateByUrl('/appointment', { replaceUrl: true });
+    this.router.navigateByUrl('/usuarios', { replaceUrl: true });
     return result;
+  }
+
+  async registerUserEmail(email: string): Promise<string> {
+
+    // Enviar el enlace de inicio de sesión al correo
+    await this.afAuth.sendSignInLinkToEmail(email, this.actionCodeSettings);
+    return email;
+  }
+
+  async handleSignInLink(email: string | null = null): Promise<void> {
+    // 1. Verificar si la URL es un enlace de inicio de sesión por correo
+    if (await this.afAuth.isSignInWithEmailLink(this.router.url)) {
+      if (!email) {
+        console.error('Email no encontrado para completar el inicio de sesión.');
+        this.router.navigateByUrl('/login', { replaceUrl: true });
+        return;
+      }
+
+      // Mostrar loading
+      const loading = await this.loadingController.create({
+        message: 'Comprobando enlace de acceso...',
+        spinner: 'crescent'
+      });
+      await loading.present();
+      try {
+        const result = await this.afAuth.signInWithEmailLink(email, this.router.url);
+
+        if (result.user) {
+          await this.checkAndCreateUserProfile(result.user, undefined);
+
+          this.router.navigateByUrl('/appointment', { replaceUrl: true });
+        }
+
+      } catch (error: any) {
+        console.log('Error al iniciar sesión con enlace de correo:', error);
+        // Manejar errores de enlace inválido o expirado
+        // Navegar al login
+        this.router.navigateByUrl('/login', { replaceUrl: true });
+        throw error;
+      } finally {
+        await loading.dismiss();
+      }
+    }
   }
 
   /**
@@ -178,10 +226,13 @@ export class AuthService {
       spinner: 'crescent'
     });
     const result = await this.afAuth.signInWithPopup(provider);
+    // const resultR = await this.afAuth.signInWithRedirect(provider);
+    // await this.afAuth.getRedirectResult();
     try {
       await this.checkAndCreateUserProfile(result.user, bId);
+
     } catch (error) {
-      console.error('Error autenticando:', error);
+      console.log('Error autenticando:', error);
     } finally {
       await loading.dismiss();
       this.isLoading = false;
@@ -190,6 +241,28 @@ export class AuthService {
 
     return result;
 
+  }
+
+  async signInWithGoogleRedirect() {
+    const auth = getAuth();
+    const provider = new GoogleAuthProvider();
+    const providerr = new firebase.auth.GoogleAuthProvider();
+    // Optional: Add scopes or custom parameters if needed
+    // provider.addScope('https://www.googleapis.com/auth/contacts.readonly');
+    // provider.setCustomParameters({ 'login_hint': 'user@example.com' });
+
+    console.log("aqui signInWithGoogleRedirect");
+    console.log("aqui signInWithGoogleRedirect", auth);
+    console.log("aqui signInWithGoogleRedirect", provider);
+    console.log("aqui signInWithGoogleRedirect", providerr);
+    try {
+      const result = await this.afAuth.signInWithRedirect(providerr);
+      await signInWithRedirect(auth, provider);
+      console.log('autenticación con Google: ', auth, "provider: ", provider);
+      console.log('signInWithRedirect: ', result);
+    } catch (error) {
+      console.log("Error during redirect sign-in:", error);
+    }
   }
 
   /**
@@ -214,11 +287,22 @@ export class AuthService {
     return this.afAuth.createUserWithEmailAndPassword(email, password);
   }
 
+  async forgotPassword(email:string): Promise<void>{
+
+    try {
+      await this.afAuth.sendPasswordResetEmail(email);
+    } catch (error) {
+      console.log('Error enviando enlace de recuperación de contraseña:', error);
+    } 
+    
+  }
+
   /**
      * Registra usuario y envia link de restablecimiento de contraseña.
      */
   async createAccountAndSendSetupLink(email: string, userData: any): Promise<void> {
-    const TEMP_PASSWORD = 'Agendatucita+123'; // Contraseña temporal, debe ser segura
+    //const TEMP_PASSWORD = 'Agendatucita123';
+    const TEMP_PASSWORD = userData.password; 
 
     try {
       // 1. Crear la cuenta en Firebase Authentication con la contraseña temporal
@@ -236,8 +320,8 @@ export class AuthService {
       // 3. Guardar el perfil en Firestore
       await this.afs.setUsers(uid, newUserProfile);
 
-      // 4. ***PASO CLAVE: Forzar al usuario a definir su contraseña***
-      await this.afAuth.sendPasswordResetEmail(email);
+      // 4. Forzar al usuario a definir su contraseña
+      // await this.afAuth.sendPasswordResetEmail(email);
 
       this.router.navigate(['/usuarios']);
 
@@ -245,7 +329,7 @@ export class AuthService {
       if (error.code === 'auth/email-already-in-use') {
         throw new Error('El correo electrónico ya está registrado.');
       }
-      console.error('Error durante la creación de cuenta administrativa:', error);
+      console.log('Error durante la creación de cuenta administrativa:', error);
       throw error;
     }
   }

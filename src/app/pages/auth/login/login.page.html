@@ -15,91 +15,122 @@
     </ion-card-header>
 
     <ion-card-content>
-      <ion-text>
-        <p>
-          Usa tu cuenta de Google para iniciar sesión y gestionar tus citas y servicios de forma rápida y segura.
-        </p>
-        <ion-note color="medium">Al ingresar por primera vez se creará automáticamente tu perfil asociado al
-          correo.</ion-note>
-      </ion-text>
+      <ion-accordion-group>
+        <ion-accordion value="login">
+          <ion-item slot="header" color="light">
+            <ion-label>Inicia sesion con Usuario y Contraseña</ion-label>
+          </ion-item>
+          <div class="ion-padding" slot="content">
+            <form [formGroup]="loginForm" (ngSubmit)="login()">
+
+              <ion-item class="formControl" lines="full" class="ion-margin-bottom">
+                <ion-label position="floating">Correo Electrónico</ion-label>
+                <ion-input class="formControl" type="email" formControlName="email"></ion-input>
+              </ion-item>
+              @if(controlEmail?.invalid && (controlEmail?.dirty || controlEmail?.touched)){
+
+              <div class="ion-padding-top ion-padding-bottom">
+                @if(controlEmail?.errors?.['required']){<ion-note color="danger">El correo es obligatorio.</ion-note>}
+                @if(controlEmail?.errors?.['email']){<ion-note color="danger">Formato de correo inválido.</ion-note>}
+              </div>
+              }
+
+
+
+              <ion-item lines="full" class="ion-margin-bottom">
+                <ion-label position="floating">Contraseña</ion-label>
+                <ion-input type="password" formControlName="password"></ion-input>
+              </ion-item>
+
+              @if(controlPassword?.invalid && (controlPassword?.dirty || controlPassword?.touched)){
+
+              <div class="ion-padding-top ion-padding-bottom">
+                @if(controlPassword?.errors?.['required']){
+                <ion-note color="danger">La contraseña es obligatoria.</ion-note>
+                }
+                @if(controlPassword?.errors?.['minlength']){
+                <ion-note color="danger">Mínimo 6 caracteres.</ion-note>
+                }
+
+              </div>
+
+              }
+
+              @if(errorMessage){
+
+              <div class="ion-padding-top ion-padding-bottom">
+                <ion-note color="danger">{{ errorMessage }}</ion-note>
+              </div>
+
+              }
+
+
+
+              <ion-button expand="full" type="submit" [disabled]="loginForm.invalid || isLoading"
+                class="ion-margin-top">
+                @if (isLoading) {
+                <ion-spinner name="crescent"></ion-spinner>
+                } @else {
+                Iniciar Sesión
+                }
+              </ion-button>
+            </form>
+          </div>
+        </ion-accordion>
+        <ion-accordion value="register">
+          <ion-item slot="header" color="light">
+            <ion-label>Registrarse</ion-label>
+          </ion-item>
+          <div class="ion-padding" slot="content">
+            <ion-button expand="full" (click)="register()" [disabled]="isLoading">
+              <ion-icon name="person-add-outline" slot="start"></ion-icon>
+              Regístrate aquí
+            </ion-button>
+          </div>
+        </ion-accordion>
+        <ion-accordion value="forgot-password">
+          <ion-item slot="header" color="light">
+            <ion-label>¿Olvidaste tu contraseña?</ion-label>
+          </ion-item>
+          <div class="ion-padding" slot="content">
+            <ion-button expand="full" (click)="forgotPassword()" [disabled]="isLoading">
+              ¿Olvidaste tu contraseña?
+            </ion-button>
+          </div>
+        </ion-accordion>
+      </ion-accordion-group>
+      <ion-item>
+        <ion-text>
+          <p>
+            Usa tu cuenta de Google para iniciar sesión y gestionar tus citas y servicios de forma rápida y segura.
+          </p>
+          <ion-note color="medium">Al ingresar por primera vez se creará automáticamente tu perfil asociado al
+            correo.</ion-note>
+        </ion-text>
+      </ion-item>
+      <ion-button expand="block" color="danger" (click)="signInWithGoogle()" shape="round" fill="outline">
+        <ion-icon name="logo-google" slot="icon-only" fill="solid"></ion-icon>
+        Ingresa con Google
+      </ion-button>
     </ion-card-content>
 
-    <ion-button expand="block" color="danger" (click)="signInWithGoogle()" shape="round" fill="outline">
-      <ion-icon name="logo-google" slot="icon-only" fill="solid"></ion-icon>
-      Ingresa con Google
-    </ion-button>
   </ion-card>
 
-
-  <!-- <form [formGroup]="loginForm" (ngSubmit)="login()"> -->
-
-    <!-- <ion-item lines="full" class="ion-margin-bottom">
-      <ion-label position="floating">Correo Electrónico</ion-label>
-      <ion-input type="email" formControlName="email"></ion-input>
-    </ion-item>
-    @if(controlEmail?.invalid && (controlEmail?.dirty || controlEmail?.touched)){
-
-    <div class="ion-padding-top ion-padding-bottom">
-      @if(controlEmail?.errors?.['required']){<ion-note color="danger">El correo es obligatorio.</ion-note>}
-      @if(controlEmail?.errors?.['email']){<ion-note color="danger">Formato de correo inválido.</ion-note>}
-    </div>
-    } -->
-
-
-<!-- 
-    <ion-item lines="full" class="ion-margin-bottom">
-      <ion-label position="floating">Contraseña</ion-label>
-      <ion-input type="password" formControlName="password"></ion-input>
-    </ion-item> -->
-
-    <!-- @if(controlPassword?.invalid && (controlPassword?.dirty || controlPassword?.touched)){
-
-    <div class="ion-padding-top ion-padding-bottom">
-      @if(controlPassword?.errors?.['required']){
-      <ion-note color="danger">La contraseña es obligatoria.</ion-note>
-      }
-      @if(controlPassword?.errors?.['minlength']){
-      <ion-note color="danger">Mínimo 6 caracteres.</ion-note>
-      }
-
-    </div>
-
-    }
-
-    @if(errorMessage){
-
-    <div class="ion-padding-top ion-padding-bottom">
-      <ion-note color="danger">{{ errorMessage }}</ion-note>
-    </div>
-
-    } -->
-
-
-
-    <!-- <ion-button expand="full" type="submit" [disabled]="loginForm.invalid || isLoading" class="ion-margin-top">
-      @if (isLoading) {
-      <ion-spinner name="crescent"></ion-spinner>
-      } @else {
-      Iniciar Sesión
-      }
-    </ion-button> -->
-  <!-- </form> -->
-  <!-- 
+  <!--   
   <div class="ion-text-center ion-padding-vertical">
     <ion-text color="medium">
-      <p>Crear Nueva Cuenta</p>
+      <p>Crear Nueva Cuenta solo Correo</p>
     </ion-text>
-    <a routerLink="/usuarios/form">Regístrate aquí</a>
-    <ion-button expand="full" color="secondary" (click)="register()" [disabled]="isLoading">
-      <ion-icon name="person-add-outline" slot="start"></ion-icon>
+    <form [formGroup]="loginFormEmail" (ngSubmit)="loginEmail()">
+      <ion-item lines="full" class="ion-margin-bottom">
+      <ion-label position="floating">Correo Electrónico</ion-label>
+      <ion-input type="email" formControlName="email"></ion-input>
+    <ion-button expand="full" type="submit" [disabled]="loginFormEmail.invalid || isLoading" class="ion-margin-top">
     </ion-button>
-  </div> -->
-
-  <!-- 
-  <div class="ion-padding-top">
-    <a routerLink="/auth/forgot-password">¿Olvidaste tu contraseña?</a>
-  </div> -->
-
+    </ion-item>
+    </form>
+    
+  </div>  -->
   <ion-footer>
     <ion-toolbar>
       <ion-title>
@@ -110,8 +141,6 @@
               By JDNA © 2025 Todos los derechos reservados.
             </p>
           </h6>
-
-
         </ion-text>
       </ion-title>
     </ion-toolbar>
