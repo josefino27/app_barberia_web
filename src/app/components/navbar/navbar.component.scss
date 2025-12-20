@@ -1,0 +1,16 @@
+// Selector para el título del Navbar
+ion-toolbar {
+  --background: #0A2A4A; // El azul profundo de tu paleta
+  --color: #F8F8F8;      // El gris claro para contraste
+
+  ion-title {
+    // Aplicamos la fuente Serif Display
+    font-family: 'Playfair Display', serif;
+    
+    // Ajustes para resaltar el estilo "Display"
+    font-weight: 700;
+    font-size: 1.4rem;
+    letter-spacing: 0.5px;
+    text-transform: capitalize; // O uppercase según prefieras
+  }
+}

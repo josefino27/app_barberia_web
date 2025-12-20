@@ -6,6 +6,7 @@ export interface User {
     phone?: number;
     role: string;
     barberId?: string;
+    barberName?: string;
     isSubscribed
     : boolean;
 }

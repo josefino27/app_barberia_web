@@ -16,36 +16,33 @@
   <form class="form" [formGroup]="userForm" (ngSubmit)="onSubmit()">
 
     <ion-item>
-
+      <ion-label position="stacked">
+        Nombre
+      </ion-label>
       <ion-input placeholder="Ingresa tu nombre completo" class="formControl" id="Nombre" type="text"
-        formControlName="name" />
-
+        formControlName="name"></ion-input>
     </ion-item>
     <ion-item>
-
+      <ion-label position="stacked">Celular</ion-label>
       <ion-input class="formControl" id="Celular" placeholder="Ingresa tu numero de celular" type="tel"
         formControlName="phone" error="required" message="Error, ingresa un telefono" />
 
     </ion-item>
+    @if(isAuthenticated?.role === 'super_admin'){
     <ion-item>
-
       <ion-select cancelText="Cerrar" label="Selecciona un rol" label-placement="floating" class="formControl" id="Rol"
         formControlName="role">
-
-        @if(isAuthenticated?.role === 'super_admin'){
         <ion-select-option selected aria-selected="true" value="super_admin">Super Admin</ion-select-option>
         <ion-select-option value="admin">Admin</ion-select-option>
-        }
         <ion-select-option value="client">User</ion-select-option>
       </ion-select>
-
-    </ion-item>
+    </ion-item>}
     <ion-item>
+      <ion-label position="stacked">
+        Correo
+      </ion-label>
       <ion-input class="formControl" placeholder="Ingresa tu correo electronico" id="Email" type="email"
         formControlName="email" />
-
-
-
     </ion-item>
     <ion-item>
       <ion-button type="submit" expand="block" [disabled]="userForm.invalid">

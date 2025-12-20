@@ -32,6 +32,7 @@ export class UsuariosPage implements OnInit {
   currentUser: [] = [];
 
   users$!: Observable<User[]>
+  barbers$!: Observable<User[]>
 
   private readonly injector = inject(EnvironmentInjector);
   private readonly authService = inject(AuthService);
@@ -49,7 +50,7 @@ export class UsuariosPage implements OnInit {
     this.r.navigate(['horarios'], { replaceUrl: true });
   }
   async goToEdit(id: User['id']) {
-    this.popover.isOpen = false;
+    // this.popover.isOpen = false;
     
     this.r.navigate([`form/${id}`], { relativeTo: this.route });
     //console.log('id enviado: ', id);
@@ -69,7 +70,8 @@ export class UsuariosPage implements OnInit {
   async ngOnInit() {
     runInInjectionContext(this.injector, async () => {
       this.users$ = this.firestore.getUsers();
-
+      this.barbers$ = this.firestore.barbersUserData$();
+      console.log('barbers$: ', this.barbers$);
       try {
         const userData = await this.authService.getCurrentUser(); 
         

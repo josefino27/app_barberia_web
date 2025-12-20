@@ -85,7 +85,7 @@ export class FormPage implements OnInit {
 
         // const result = await this.authService.registerUser(userData.email, 'usuario123');
 
-        const result = await this.authService.createAccountAndSendSetupLink(userData.email, userData);
+        const result = await this.authService.createAccountAndSendSetupLink(userData.email, userData,'');
         // const uid = result.user.uid;
 
         // // 2. Crear el objeto de perfil usando el UID generado
@@ -116,7 +116,7 @@ export class FormPage implements OnInit {
 
   async loadUserForm(id: string) {
     this.user = await this.afs.getUserById(id);
-
+    console.log("user: ", this.user);
     if (this.user) {
       // Si el usuario existe, llena el formulario con sus datos
       this.userForm.patchValue(this.user);

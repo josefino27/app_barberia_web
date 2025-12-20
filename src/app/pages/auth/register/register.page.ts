@@ -2,7 +2,7 @@ import { AsyncPipe, CommonModule } from '@angular/common';
 import { ChangeDetectorRef, Component, EnvironmentInjector, inject, OnInit, runInInjectionContext } from '@angular/core';
 import { AngularFirestoreModule } from '@angular/fire/compat/firestore';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, ValidatorFn, AbstractControl, ValidationErrors } from '@angular/forms';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { IonicModule, LoadingController, ToastController } from '@ionic/angular';
 import { User } from 'firebase/auth';
 import { Observable } from 'rxjs';
@@ -42,7 +42,7 @@ export class RegisterPage {
   isViewing: boolean = false;
   user: User | null = null;
   isAuthenticated: User | null = null;
-
+  bId: string | null = null;
   private readonly injector = inject(EnvironmentInjector);
 
 
@@ -60,8 +60,11 @@ export class RegisterPage {
     private router: Router,
     private authService: AuthService,
     private toastCtrl: ToastController,
-    private loadingCtrl: LoadingController
+    private loadingCtrl: LoadingController,
+    private activatedRoute: ActivatedRoute
   ) {
+    this.bId = this.activatedRoute.snapshot.queryParamMap.get('bId');
+
     this.registerUserForm = this.formBuilder.group({
       name: ['', Validators.required],
       email: ['', [Validators.required, Validators.email]],
@@ -87,7 +90,7 @@ export class RegisterPage {
     const userData = this.registerUserForm.getRawValue();
 
     try {
-      const result = await this.authService.createAccountAndSendSetupLink(userData.email, userData);
+      const result = await this.authService.createAccountAndSendSetupLink(userData.email, userData, this.bId!);
       this.showToast('¡Registro exitoso!', 'success');
       // this.router.navigate(['/login']);
     } catch (error) {

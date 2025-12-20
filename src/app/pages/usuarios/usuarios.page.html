@@ -19,6 +19,11 @@
       </ion-item>
     </ion-toolbar>
   </ion-header>
+  @for(barber of barbers$ | async; track barber.name){
+  <ion-label>
+    {{barber.name}}
+  </ion-label>
+  }
 
   @for (user of users$ | async; track user.id) {
   <ion-card class="ion-text-center" (click)="goToEdit(user.id)">
@@ -26,7 +31,7 @@
       <ion-row>
         <ion-col size="12">
           <ion-avatar>
-            <img [src]="user.photoUrl || 'assets/default-avatar.png'">
+            <img [src]="user.photoUrl || './assets/icon/default_avatar.jpg'">
           </ion-avatar>
         </ion-col>
       </ion-row>
@@ -77,22 +82,42 @@
         </ion-col>
       </ion-row>
     </ion-grid>
+    <ion-grid>
+      <ion-row>
+        <ion-col size="3">
+          <ion-text>
+            <p>Rol:</p>
+          </ion-text>
+        </ion-col>
+        <ion-col>
+          <ion-text>
+            <p>
+              {{user.role | titlecase}}
+            </p>
+          </ion-text>
+        </ion-col>
+      </ion-row>
+    </ion-grid>
+    @if(user.barberName){
+    <ion-grid>
+      <ion-row>
+        <ion-col size="3">
+          <ion-text>
+            <p>Barbero:</p>
+          </ion-text>
+        </ion-col>
+        <ion-col>
+          <ion-text>
+            <p>
+              {{user.barberName| titlecase}}
+            </p>
+          </ion-text>
+        </ion-col>
+      </ion-row>
+    </ion-grid>
+    }
 
-    <ion-card-content class="ion-align-items-center">
-      <ion-grid>
-        <ion-row>
-          <ion-col>
-            <ion-text>
-              <p>
-                {{user.role | titlecase}}
-              </p>
-              <ion-note color="medium">{{user.barberId | titlecase}}</ion-note>
-            </ion-text>
-          </ion-col>
-        </ion-row>
-      </ion-grid>
 
-    </ion-card-content>
   </ion-card>
   } @empty {
   <ion-list>No hay registros en lista.</ion-list>

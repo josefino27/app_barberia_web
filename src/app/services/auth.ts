@@ -124,7 +124,8 @@ export class AuthService {
     try {
       // 1. Intentar obtener el perfil de Firestore por su UID
       const firestoreUser = await this.afs.getUserById(user.uid);
-
+      const barbers = await firstValueFrom(this.afs.barbersUserData$(bId));
+      const selectedBarber = (await barbers).find(b => b.id === bId);
       if (firestoreUser) {
         // El perfil ya existe, no hacer nada.
         return;
@@ -137,7 +138,8 @@ export class AuthService {
         name: user.displayName || '',
         photoUrl: user.photoURL || '',
         role: 'client',
-        barberId: bId || '',
+        barberId: selectedBarber?.id || '',
+        barberName: selectedBarber?.name || '',
         phone: undefined,
         isSubscribed: false
       };
@@ -251,10 +253,10 @@ export class AuthService {
     // provider.addScope('https://www.googleapis.com/auth/contacts.readonly');
     // provider.setCustomParameters({ 'login_hint': 'user@example.com' });
 
-    console.log("aqui signInWithGoogleRedirect");
-    console.log("aqui signInWithGoogleRedirect", auth);
-    console.log("aqui signInWithGoogleRedirect", provider);
-    console.log("aqui signInWithGoogleRedirect", providerr);
+    // console.log("aqui signInWithGoogleRedirect");
+    // console.log("aqui signInWithGoogleRedirect", auth);
+    // console.log("aqui signInWithGoogleRedirect", provider);
+    // console.log("aqui signInWithGoogleRedirect", providerr);
     try {
       const result = await this.afAuth.signInWithRedirect(providerr);
       await signInWithRedirect(auth, provider);
@@ -287,34 +289,43 @@ export class AuthService {
     return this.afAuth.createUserWithEmailAndPassword(email, password);
   }
 
-  async forgotPassword(email:string): Promise<void>{
+  async forgotPassword(email: string): Promise<void> {
 
     try {
       await this.afAuth.sendPasswordResetEmail(email);
     } catch (error) {
       console.log('Error enviando enlace de recuperación de contraseña:', error);
-    } 
-    
+    }
+
   }
 
   /**
      * Registra usuario y envia link de restablecimiento de contraseña.
      */
-  async createAccountAndSendSetupLink(email: string, userData: any): Promise<void> {
+  async createAccountAndSendSetupLink(email: string, userData: any, bId: string): Promise<void> {
     //const TEMP_PASSWORD = 'Agendatucita123';
-    const TEMP_PASSWORD = userData.password; 
+    const TEMP_PASSWORD = userData.password;
 
     try {
       // 1. Crear la cuenta en Firebase Authentication con la contraseña temporal
       // Esto verifica la unicidad del email y crea el registro de credenciales.
       const result = await this.afAuth.createUserWithEmailAndPassword(email, TEMP_PASSWORD);
-      const uid = result.user!.uid;
+      // Usamos firstValueFrom para obtener el primer valor que emita y cerrar la suscripción
+      const barbers = await firstValueFrom(this.afs.barbersUserData$(bId));
 
+      // 2. Buscamos el barbero específico en la lista (si el bId es el ID del documento)
+      const selectedBarber = barbers.find(b => b.id === bId);
+      const uid = result.user!.uid;
+      console.log("email ", email);
+      console.log("userData ", userData);
+      console.log("barber ", selectedBarber);
       // 2. Crear el objeto de perfil en Firestore (usando el UID)
       const newUserProfile: User = {
         ...userData as User,
         id: uid,
         role: userData.role || 'client',
+        barberId: selectedBarber?.id || '',
+        barberName: selectedBarber?.name || ''
       };
 
       // 3. Guardar el perfil en Firestore

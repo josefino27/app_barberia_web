@@ -102,7 +102,7 @@ export class AppointmentFormPage implements OnInit {
 
       // 1. Obtener ID de la ruta (sincrono)
       this.appointmentId = this.activatedRoute.snapshot.paramMap.get('id');
-      this.barbers$ = this.firestoreService.barbersUserData$;
+      this.barbers$ = this.firestoreService.barbersUserData$('');
       const userData = await this.afauth.getCurrentUser();
       this.user = userData;
 

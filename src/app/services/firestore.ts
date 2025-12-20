@@ -9,6 +9,8 @@ import { Service } from '../interfaces/service';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
 import { AuthService } from './auth';
 import { BarberScheduleModel } from '../interfaces/horarios';
+import { computed } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 
 @Injectable({
   providedIn: 'root'
@@ -38,6 +40,7 @@ export class FirestoreService {
 
 
   private injector = inject(EnvironmentInjector);
+
   constructor(
 
     private afs: AngularFirestore,
@@ -305,7 +308,11 @@ export class FirestoreService {
     ).subscribe(data => {
       this._barbers.next(data);
     });
+    const usersRaw = toSignal(this.usersCollection.valueChanges({ idField: 'id' }), { initialValue: [] });
+    console.log("userRaw", usersRaw);
+
   }
+
 
   private loadServices(): void {
     this.servicesCollection.valueChanges({ idField: 'id' }).pipe(
@@ -357,6 +364,9 @@ export class FirestoreService {
 
   getUsers(): Observable<User[]> {
     return this._users;
+  }
+  getBarbers(): Observable<Barber[]> {
+    return this._barbers;
   }
 
   async setUsers(uid: string, data: User): Promise<void> {
@@ -414,10 +424,10 @@ export class FirestoreService {
       console.log("service: ", date.toLocaleDateString);
       const startOfDay = new Date(date);
       startOfDay.setHours(0, 0, 0, 0);
-console.log("service startOfDay: ", startOfDay);
+      console.log("service startOfDay: ", startOfDay);
       const endOfDay = new Date(date);
       endOfDay.setHours(23, 59, 59, 999);
-console.log("service endOfDay: ", endOfDay);
+      console.log("service endOfDay: ", endOfDay);
       const q = this.afs.collection('appointments', ref =>
         ref.where('barberId', '==', barberId)
           .where('date', '>=', startOfDay)
@@ -425,7 +435,7 @@ console.log("service endOfDay: ", endOfDay);
       );
 
       const snapshot = await q.get().toPromise();
-console.log("service snapshot: ", snapshot);
+      console.log("service snapshot: ", snapshot);
       if (!snapshot || !snapshot.docs) {
         return [];
       }
@@ -440,7 +450,7 @@ console.log("service snapshot: ", snapshot);
           date: (data.date as any)?.toDate ? (data.date as any).toDate() : data.date
         };
       });
-console.log("service appointments: ", appointments);
+      console.log("service appointments: ", appointments);
       return appointments;
 
     });
@@ -457,9 +467,9 @@ console.log("service appointments: ", appointments);
         if (userAuth) {
 
           const appointmentsSnapshot = await firstValueFrom(this.afs.collection<AppointmentModel>(
-            'appointments', 
+            'appointments',
             ref => ref.where('userId', '==', id)
-        ).get().pipe(take(1)));
+          ).get().pipe(take(1)));
 
           await userAuth.delete()
           console.warn("No hay usuario autenticado para eliminar.");
@@ -620,15 +630,31 @@ console.log("service appointments: ", appointments);
     })
   }
 
-  barbersUserData$: Observable<User[]> = runInInjectionContext(this.injector, () => {
+  barbersUserData$(id: string | null = null): Observable<User[]> {
+    return runInInjectionContext(this.injector, () => {
+      return this.afs.collection<User>(
+        'users',
+        ref => {
+          let query: any = ref;
 
-    return this.afs.collection<User>(
-      'users',
-      ref => ref.where('role', '==', 'admin') // CLAVE: Filtramos por el rol
-    ).valueChanges({ idField: 'id' }).pipe(catchError(error => {
-      console.error("Error al cargar barberos (rol 'admin'): ", error);
-      return of([]);
-    }), shareReplay(1));
-  });
+          // Si el parámetro 'role' tiene un valor, aplicamos el filtro
+          if (id && id.trim() !== '') {
+            query = query.where('role', '==', 'admin').where('id', '==', id);
+          } else {
+            query = query.where('role', '==', 'admin');
 
+          }
+
+          return query;
+
+        }
+      ).valueChanges({ idField: 'id' }).pipe(
+        catchError(error => {
+          console.error(`Error al cargar admin:S `, error);
+          return of([]);
+        }),
+        shareReplay(1)
+      );
+    })
+  }
 }
