@@ -9,4 +9,6 @@ export interface User {
     barberName?: string;
     isSubscribed
     : boolean;
+    startTimePred?:number;
+    endTimePred?:number;
 }

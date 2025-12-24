@@ -21,6 +21,14 @@
                   <ion-button fill="outline" expand="full" (click)="goToEdit(isAuthenticated.id)">Perfil</ion-button>
                 </ion-col>
               </ion-row>
+              @if (isAuthenticated.role=="super_admin") {
+              <ion-row>
+                <ion-col>
+                  <ion-button fill="outline" expand="full"
+                    (click)="goToUsuarios()">Usuarios</ion-button>
+                </ion-col>
+              </ion-row>
+              }
               <ion-row>
                 <ion-col>
                   <ion-button fill="outline" expand="full"

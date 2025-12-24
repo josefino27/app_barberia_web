@@ -1,240 +1,212 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { IonicModule } from '@ionic/angular';
-import { Router, ActivatedRoute } from '@angular/router';
-import { NavbarComponent } from 'src/app/components/navbar/navbar.component';
+import { IonicModule, AlertController } from '@ionic/angular'; // Importamos AlertController
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { FirestoreService } from 'src/app/services/firestore';
 import { AuthService } from 'src/app/services/auth';
 import { BarberScheduleModel } from 'src/app/interfaces/horarios';
 import { User } from 'src/app/interfaces/user';
 import { firstValueFrom } from 'rxjs';
+import { MatTimepickerModule } from '@angular/material/timepicker';
+import { MatInputModule } from '@angular/material/input';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { provideNativeDateAdapter } from '@angular/material/core';
+import { NavbarComponent } from 'src/app/components/navbar/navbar.component';
 
 @Component({
   selector: 'app-schedules',
   templateUrl: './horarios.page.html',
   styleUrls: ['./horarios.page.scss'],
+  providers: [provideNativeDateAdapter()],
   standalone: true,
-  imports: [IonicModule, CommonModule, NavbarComponent, ReactiveFormsModule]
+  imports: [IonicModule, CommonModule, ReactiveFormsModule,
+    MatFormFieldModule, MatInputModule, MatTimepickerModule,
+    NavbarComponent
+  ]
 })
 export class HorariosPage implements OnInit {
-
   private firestoreService = inject(FirestoreService);
   private authService = inject(AuthService);
   private fb = inject(FormBuilder);
+  private alertController = inject(AlertController); // Inyectamos el controlador de alertas
 
   currentUser!: User | null;
-  barberId: string | null = null;
-  
-  // Horario mensual completo cargado desde Firestore
+  allBarberSchedules: BarberScheduleModel[] = [];
   currentSchedule: BarberScheduleModel | null = null;
 
-  allBarberSchedules: BarberScheduleModel[] = []; 
-
-  // Propiedades reactivas del calendario
-  selectedDate: string = new Date().toISOString(); // Fecha seleccionada en formato ISO
+  weekDays = [
+    { id: '0', name: 'Domingo' }, { id: '1', name: 'Lunes' },
+    { id: '2', name: 'Martes' }, { id: '3', name: 'Miércoles' },
+    { id: '4', name: 'Jueves' }, { id: '5', name: 'Viernes' },
+    { id: '6', name: 'Sábado' }
+  ];
+  
+  selectedDayIndex: string = new Date().getDay().toString();
   scheduleForm!: FormGroup;
-  isSaving: boolean = false;
-  successMessage: string | null = null;
-  errorMessage: string | null = null;
+  timeForm!: FormGroup;
+  hours: string[] = Array.from({ length: 14 }, (_, i) => `${String(i + 8).padStart(2, '0')}:00`);
 
-  // Rango de horas para las listas desplegables (simulación)
-  hours: string[] = Array.from({ length: 14 }, (_, i) => this.formatTime(i + 8)); // 08:00 a 21:00
+  isSaving = false;
 
-  constructor(
+  constructor() {
+    this.initForms();
+  }
 
-  ) {
-    // Inicializa el formulario con valores por defecto
+  private initForms() {
     this.scheduleForm = this.fb.group({
-      // Habilita/Deshabilita el trabajo en la fecha seleccionada
-      isWorking: [true], 
+      isWorking: [true],
       start: ['09:00', Validators.required],
       end: ['17:00', Validators.required],
-      // Opcionales para la pausa
       hasBreak: [false],
       breakStart: ['13:00'],
       breakEnd: ['14:00'],
       id: [null]
     });
+
+    this.timeForm = this.fb.group({
+      startTime: [""],
+      endTime: [""],
+    });
   }
 
   async ngOnInit() {
-    // 1. Obtener el usuario actual
     this.currentUser = await firstValueFrom(this.authService.currentUser$);
-    if (this.currentUser?.id && this.currentUser.role === 'admin') {
-      this.barberId = this.currentUser.id;
-      // 2. Suscribirse a los cambios del horario
-      this.loadSchedule();
-    } else {
-      this.errorMessage = 'Debe ser un usuario autenticado para gestionar horarios.';
+    if (this.currentUser?.id) {
+      // 1. Cargamos todos los horarios guardados
+      await this.loadSchedule();
+      
+      // 2. Sincronizamos el formulario con el día actual seleccionado
+      this.updateFormForSelectedDay();
+      
+      // 3. Cargamos horario por defecto del perfil
+      this.timeForm.patchValue({
+        startTime: this.convertMinutesToDate(this.currentUser.startTimePred || 480),
+        endTime: this.convertMinutesToDate(this.currentUser.endTimePred || 1020)
+      });
     }
-  }
-  
-  // Genera horas de 08:00 a 21:00 en formato HH:00
-  private formatTime(hour: number): string {
-    return `${String(hour).padStart(2, '0')}:00`;
   }
 
-   /**
-   * Carga los horarios de disponibilidad del barbero actual.
-   * Modificado para usar async/await y consumir la Promise<T> del servicio.
-   */
-  public async loadSchedule(): Promise<void> {
-    if (!this.currentUser?.id) {
-      return;
-    }
-    
-    //this.isLoadingSchedule = true;
+  // Carga inicial y refresco de datos
+  async loadSchedule() {
+    if (!this.currentUser?.id) return;
     try {
-      this.allBarberSchedules = await this.firestoreService.getBarberSchedule(this.currentUser?.id!,'');
-      //console.log(`Horarios cargados:`, this.allBarberSchedules);
+      this.allBarberSchedules = await this.firestoreService.getBarberSchedule(this.currentUser.id, '');
     } catch (error) {
-      console.error('Error al cargar los horarios del barbero:', error);
-      // Limpia el horario en caso de error
-      this.allBarberSchedules = [];
-    } finally {
-      //this.isLoadingSchedule = false;
+      console.error("Error cargando horarios:", error);
     }
   }
 
-  /**
-   * Convierte un objeto Date ISO String a la clave 'YYYY-MM-DD'.
-   */
-  private formatDateKey(isoString: string): string {
-      const date = new Date(isoString);
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
-      return `${year}-${month}-${day}`; 
+  onDaySelect(event: any) {
+    this.selectedDayIndex = event.detail.value;
+    this.updateFormForSelectedDay();
   }
 
-  /**
-   * Actualiza la fecha seleccionada por el usuario en el calendario.
-   */
-  onDateChange(event: any): void {
-    const isoString = event.detail.value;
-    if (isoString) {
-      this.selectedDate = isoString;
-      this.updateFormForSelectedDate();
-    }
-  }
+  // BUSCA SI EL DÍA YA EXISTE EN LA DB Y CARGA LOS DATOS
+  updateFormForSelectedDay() {
+    this.currentSchedule = this.allBarberSchedules.find(s => s.day === this.selectedDayIndex) || null;
 
-  /**
-   * Carga el horario para la 'selectedDate' en el formulario.
-   */
-  updateFormForSelectedDate(): void {
-    if (!this.currentSchedule) return;
-
-    const dateKey = this.formatDateKey(this.selectedDate);
-    this.currentSchedule = this.allBarberSchedules.find(s => s.day === dateKey) || null;
-    
-    // Si hay un horario definido para este día (Override)
-     if (this.currentSchedule) {
-      // Si hay un horario definido, cargamos sus valores
+    if (this.currentSchedule) {
       this.scheduleForm.patchValue({
         id: this.currentSchedule.id,
         isWorking: true,
         start: this.currentSchedule.startTime,
         end: this.currentSchedule.endTime,
-        hasBreak: !!this.currentSchedule.breakStart, 
+        hasBreak: !!this.currentSchedule.breakStart,
         breakStart: this.currentSchedule.breakStart || '13:00',
         breakEnd: this.currentSchedule.breakEnd || '14:00',
       });
     } else {
-      // Si NO hay horario, limpiamos y establecemos valores por defecto
+      // Si no existe, reseteamos el formulario a valores base
       this.scheduleForm.reset({
-        id: null, // Aseguramos que el ID esté nulo para forzar la creación de un nuevo documento
-        isWorking: false, 
+        isWorking: false,
         start: '09:00',
         end: '17:00',
         hasBreak: false,
         breakStart: '13:00',
-        breakEnd: '14:00',
+        breakEnd: '14:00'
       });
     }
   }
-  
-  /**
-   * Guarda el horario del día seleccionado en Firestore.
-   */
-  async saveSchedule(): Promise<void> {
-    
-     if (!this.scheduleForm.valid || !this.barberId || this.isSaving) return;
-    
+
+  async saveSchedule() {
+    if (this.scheduleForm.invalid || !this.currentUser?.id) return;
     this.isSaving = true;
-    this.successMessage = null;
-    this.errorMessage = null;
 
-    const dateKey = this.formatDateKey(this.selectedDate);
     const formValue = this.scheduleForm.getRawValue();
-
-    // Si el día está marcado como no trabajado, y existe un horario (tiene ID), lo eliminamos.
-    if (!formValue.isWorking) {
-        return this.clearSchedule(); 
-    }
     
-    // Si está trabajando, preparamos el objeto para guardar
+    // Si el usuario marca que NO trabaja, eliminamos la entrada para que cuente como libre
+    if (!formValue.isWorking) {
+      await this.clearSchedule();
+      return;
+    }
+
     const scheduleToSave: BarberScheduleModel = {
-        id: formValue.id, // Se usa para actualizar si ya existe
-        barberId: this.barberId,
-        day: dateKey,
-        startTime: formValue.start,
-        endTime: formValue.end,
+      id: formValue.id || `${this.currentUser.id}_day_${this.selectedDayIndex}`,
+      barberId: this.currentUser.id,
+      day: this.selectedDayIndex,
+      startTime: formValue.start,
+      endTime: formValue.end,
+      breakStart: formValue.hasBreak ? formValue.breakStart : null,
+      breakEnd: formValue.hasBreak ? formValue.breakEnd : null
     };
 
-    if (formValue.hasBreak) {
-        scheduleToSave.breakStart = formValue.breakStart;
-        scheduleToSave.breakEnd = formValue.breakEnd;
-    }
-
     try {
-      // Pasamos el objeto scheduleToSave al servicio
       await this.firestoreService.setBarberSchedule(scheduleToSave);
-      this.successMessage = `Horario guardado para el día ${dateKey}.`;
-    } catch (error) {
-      this.errorMessage = 'Error al guardar el horario. Inténtalo de nuevo.';
-      console.error('Error saving schedule:', error);
+      await this.loadSchedule(); // Refrescamos lista local
+      this.updateFormForSelectedDay(); // Aseguramos que el ID se cargue en el form
+      this.presentAlert('Éxito', `Horario de los ${this.weekDays[+this.selectedDayIndex].name} actualizado.`);
+    } catch (e) {
+      this.presentAlert('Error', 'No se pudo guardar el horario.');
     } finally {
       this.isSaving = false;
     }
   }
 
-  /**
-   * Elimina el horario específico para la fecha seleccionada (lo marca como día libre).
-   */
-  async clearSchedule(): Promise<void> {
-    if (!this.barberId || this.isSaving) return;
-
-    // Solo podemos eliminar si hay un horario cargado y tiene un ID de documento
-    if (this.currentSchedule?.id) {
-        this.isSaving = true;
-        this.successMessage = null;
-        this.errorMessage = null;
-        
-        try {
-            // Llamamos al nuevo método de eliminación por ID
-            await this.firestoreService.deleteBarberSchedule(this.currentSchedule.id);
-            this.successMessage = `Horario eliminado (día libre) para la fecha seleccionada.`;
-            // Forzamos la actualización del formulario al estado "No trabajando"
-            this.scheduleForm.get('isWorking')?.setValue(false);
-            this.currentSchedule = null;
-        } catch (error) {
-            this.errorMessage = 'Error al eliminar el horario.';
-            console.error('Error deleting schedule:', error);
-        } finally {
-            this.isSaving = false;
-        }
-    } else {
-        // Si no existe un horario para ese día, simplemente reseteamos el formulario
-        this.scheduleForm.reset({
-            isWorking: false, 
-            start: '09:00',
-            end: '17:00',
-            hasBreak: false,
-            breakStart: '13:00',
-            breakEnd: '14:00',
-        });
-        this.successMessage = `El día ya estaba marcado como libre.`;
+  async clearSchedule() {
+    const id = this.scheduleForm.get('id')?.value;
+    try {
+      if (id) {
+        await this.firestoreService.deleteBarberSchedule(id);
+        await this.loadSchedule();
+      }
+      this.updateFormForSelectedDay();
+      this.presentAlert('Día Libre', 'Se ha configurado como día no laborable.');
+    } catch (e) {
+      this.presentAlert('Error', 'No se pudo eliminar el horario.');
+    } finally {
+      this.isSaving = false;
     }
+  }
+
+  // ALERTA DE IONIC
+  async presentAlert(header: string, message: string) {
+    const alert = await this.alertController.create({
+      header,
+      message,
+      buttons: ['OK'],
+      mode: 'ios'
+    });
+    await alert.present();
+  }
+
+  // Mantener tu lógica de perfil intacta
+  async onDateTime() {
+    let start: Date = this.timeForm.get("startTime")!.value;
+    let end: Date = this.timeForm.get("endTime")!.value;
+    try {
+      await this.firestoreService.updateUser(this.currentUser!.id, {
+        startTimePred: start.getHours() * 60 + start.getMinutes(),
+        endTimePred: end.getHours() * 60 + end.getMinutes()
+      });
+      this.presentAlert('Perfil Actualizado', 'El horario base se ha guardado correctamente.');
+    } catch (e) {
+      this.presentAlert('Error', 'No se pudo actualizar el perfil.');
+    }
+  }
+
+  private convertMinutesToDate(min: number): Date {
+    let date = new Date();
+    date.setHours(Math.floor(min / 60), min % 60, 0, 0);
+    return date;
   }
 }

@@ -1,128 +1,116 @@
 <app-navbar></app-navbar>
 
 <ion-content class="ion-padding">
-  <div class="max-w-xl mx-auto py-4">
-    <h1 class="text-3xl font-extrabold text-gray-800 mb-6">Gestión de Horarios</h1>
+  <ion-list lines="none">
+    <ion-list-header>
+      <ion-label color="primary"><h2>Configuración de Perfil</h2></ion-label>
+    </ion-list-header>
+    
+    <form [formGroup]="timeForm">
+      <ion-item>
+        <mat-form-field appearance="outline" style="width: 100%; margin-top: 10px;">
+          <mat-label>Hora Entrada General</mat-label>
+          <input matInput [matTimepicker]="p1" formControlName="startTime">
+          <mat-timepicker-toggle matSuffix [for]="p1"></mat-timepicker-toggle>
+          <mat-timepicker #p1></mat-timepicker>
+        </mat-form-field>
+      </ion-item>
 
-    <ion-card class="shadow-lg rounded-xl">
-      <ion-card-header>
-        <ion-card-title class="text-xl font-semibold text-primary">Seleccionar Día</ion-card-title>
-      </ion-card-header>
-      <ion-card-content>
-        <!-- Selector de Día (Calendario) -->
-        <ion-datetime presentation="date" [value]="selectedDate" (ionChange)="onDateChange($event)" locale="es-ES"
-          class="mb-4"></ion-datetime>
-      </ion-card-content>
-    </ion-card>
+      <ion-item>
+        <mat-form-field appearance="outline" style="width: 100%; margin-top: 10px;">
+          <mat-label>Hora Salida General</mat-label>
+          <input matInput [matTimepicker]="p2" formControlName="endTime">
+          <mat-timepicker-toggle matSuffix [for]="p2"></mat-timepicker-toggle>
+          <mat-timepicker #p2></mat-timepicker>
+        </mat-form-field>
+      </ion-item>
+    </form>
+    
+    <ion-button expand="block" (click)="onDateTime()" fill="clear">
+      Actualizar Perfil de Usuario
+    </ion-button>
+  </ion-list>
 
-    <h2 class="text-2xl font-bold mt-8 mb-4">Horario para el día: {{ selectedDate | date:
-      'fullDate':'':'es-ES' }}</h2>
+  <ion-item-divider mode="md"></ion-item-divider>
 
-    <form [formGroup]="scheduleForm" (ngSubmit)="saveSchedule()">
-      <ion-card class="shadow-lg rounded-xl">
-        <ion-card-content class="space-y-4">
+  <ion-list-header class="ion-margin-top">
+    <ion-label color="primary"><h2>Plantilla Semanal de Citas</h2></ion-label>
+  </ion-list-header>
 
-          <!-- Switch para Trabaja/Día Libre -->
-          <ion-item lines="full" class="rounded-lg">
-            <ion-toggle formControlName="isWorking" labelPlacement="start" justify="space-between" class="font-medium">
-              <span *ngIf="scheduleForm.get('isWorking')?.value; else notWorking">Día de Trabajo</span>
-              <ng-template #notWorking>Día Libre / Cerrado</ng-template>
-            </ion-toggle>
+  <ion-segment [value]="selectedDayIndex" (ionChange)="onDaySelect($event)" scrollable="true" mode="md" class="ion-margin-bottom">
+    <ion-segment-button *ngFor="let day of weekDays" [value]="day.id">
+      <ion-label>{{ day.name.substring(0,3) }}</ion-label>
+    </ion-segment-button>
+  </ion-segment>
+
+  <ion-card class="ion-no-margin">
+    <ion-card-header>
+      <ion-card-title color="dark">Configurar: {{ weekDays[+selectedDayIndex].name }}</ion-card-title>
+    </ion-card-header>
+
+    <form [formGroup]="scheduleForm">
+      <ion-list lines="full">
+        <ion-item>
+          <ion-toggle formControlName="isWorking" justify="space-between">
+            <ion-label>
+              {{ scheduleForm.get('isWorking')?.value ? 'Día Laborable' : 'Día Cerrado' }}
+            </ion-label>
+          </ion-toggle>
+        </ion-item>
+
+        <ng-container *ngIf="scheduleForm.get('isWorking')?.value">
+          <ion-grid>
+            <ion-row>
+              <ion-col size="6">
+                <ion-item lines="none">
+                  <ion-select label="Entrada" labelPlacement="floating" formControlName="start">
+                    <ion-select-option *ngFor="let h of hours" [value]="h">{{ h }}</ion-select-option>
+                  </ion-select>
+                </ion-item>
+              </ion-col>
+              <ion-col size="6">
+                <ion-item lines="none">
+                  <ion-select label="Salida" labelPlacement="floating" formControlName="end">
+                    <ion-select-option *ngFor="let h of hours" [value]="h">{{ h }}</ion-select-option>
+                  </ion-select>
+                </ion-item>
+              </ion-col>
+            </ion-row>
+          </ion-grid>
+
+          <ion-item>
+            <ion-toggle formControlName="hasBreak" justify="space-between">¿Tiene Almuerzo/Pausa?</ion-toggle>
           </ion-item>
 
-          <!-- CONTROLES DE HORARIO (Solo si está trabajando) -->
-          <div *ngIf="scheduleForm.get('isWorking')?.value" class="space-y-4 pt-2">
-
-            <!-- Horario de Inicio y Fin -->
-            <div class="grid grid-cols-2 gap-4">
-              <ion-item class="rounded-lg">
-                <ion-select label="Hora de Inicio" labelPlacement="floating" formControlName="start">
-                  <ion-select-option *ngFor="let h of hours" [value]="h">{{ h }}</ion-select-option>
-                </ion-select>
-              </ion-item>
-
-              <ion-item class="rounded-lg">
-                <ion-select label="Hora de Fin" labelPlacement="floating" formControlName="end">
-                  <ion-select-option *ngFor="let h of hours" [value]="h">{{ h }}</ion-select-option>
-                </ion-select>
-              </ion-item>
-            </div>
-
-            <!-- Switch para Pausa/Almuerzo -->
-            <ion-item lines="full" class="rounded-lg">
-              <ion-toggle formControlName="hasBreak" labelPlacement="start" justify="space-between" class="font-medium">
-                Incluir Pausa (Almuerzo)
-              </ion-toggle>
-            </ion-item>
-
-            <!-- Controles de Pausa (Solo si tiene pausa) -->
-            <div *ngIf="scheduleForm.get('hasBreak')?.value" class="grid grid-cols-2 gap-4">
-              <ion-item class="rounded-lg">
-                <ion-select label="Inicio de Pausa" labelPlacement="floating" formControlName="breakStart">
-                  <ion-select-option *ngFor="let h of hours" [value]="h">{{ h }}</ion-select-option>
-                </ion-select>
-              </ion-item>
-
-              <ion-item class="rounded-lg">
-                <ion-select label="Fin de Pausa" labelPlacement="floating" formControlName="breakEnd">
-                  <ion-select-option *ngFor="let h of hours" [value]="h">{{ h }}</ion-select-option>
-                </ion-select>
-              </ion-item>
-            </div>
-          </div>
-
-          <!-- Mensajes de Estado -->
-          <ion-note *ngIf="successMessage" class="text-green-600 font-semibold block">{{ successMessage }}</ion-note>
-          <ion-note *ngIf="errorMessage" class="text-red-600 font-semibold block">{{ errorMessage }}</ion-note>
-
-        </ion-card-content>
-      </ion-card>
-
-      <!-- Botones de Acción -->
-      <div class="mt-6 space-y-3">
-        <ion-button expand="full" type="submit" color="primary" [disabled]="isSaving || scheduleForm.invalid">
-          <ion-spinner *ngIf="isSaving" name="dots"></ion-spinner>
-          <span *ngIf="!isSaving">Guardar Horario para este Día</span>
-        </ion-button>
-
-        <ion-button expand="full" type="button" color="danger" fill="outline" (click)="clearSchedule()"
-          [disabled]="isSaving || !currentSchedule">
-          Eliminar Horario (Marcar como Libre)
-        </ion-button>
-      </div>
+          <ion-grid *ngIf="scheduleForm.get('hasBreak')?.value">
+            <ion-row>
+              <ion-col size="6">
+                <ion-item lines="none">
+                  <ion-select label="Inicia" labelPlacement="floating" formControlName="breakStart">
+                    <ion-select-option *ngFor="let h of hours" [value]="h">{{ h }}</ion-select-option>
+                  </ion-select>
+                </ion-item>
+              </ion-col>
+              <ion-col size="6">
+                <ion-item lines="none">
+                  <ion-select label="Termina" labelPlacement="floating" formControlName="breakEnd">
+                    <ion-select-option *ngFor="let h of hours" [value]="h">{{ h }}</ion-select-option>
+                  </ion-select>
+                </ion-item>
+              </ion-col>
+            </ion-row>
+          </ion-grid>
+        </ng-container>
+      </ion-list>
     </form>
-  </div>
+  </ion-card>
+
+  <ion-button expand="block" class="ion-margin-top" (click)="saveSchedule()" [disabled]="isSaving">
+    <ion-spinner *ngIf="isSaving" name="crescent" slot="start"></ion-spinner>
+    Guardar Plantilla
+  </ion-button>
+
+  <ion-button expand="block" color="danger" fill="clear" (click)="clearSchedule()" [disabled]="!currentSchedule || isSaving">
+    Resetear día a "Cerrado"
+  </ion-button>
 </ion-content>
-
-<style>
-  .max-w-xl {
-    max-width: 48rem;
-    /* Simulación de Tailwind max-w-xl */
-  }
-
-  .mx-auto {
-    margin-left: auto;
-    margin-right: auto;
-  }
-
-  .text-primary {
-    color: var(--ion-color-primary);
-  }
-
-  .rounded-xl {
-    --border-radius: 1rem;
-  }
-
-  .shadow-lg {
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  }
-
-  /* Ajustes para el ion-datetime en modo calendario */
-  ion-datetime {
-    --background: var(--ion-color-light);
-    --padding-top: 10px;
-    --padding-bottom: 10px;
-    --padding-start: 10px;
-    --padding-end: 10px;
-  }
-</style>

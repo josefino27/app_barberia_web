@@ -1,14 +1,11 @@
-// Selector para el título del Navbar
-ion-toolbar {
 
-  ion-title {
-    // Aplicamos la fuente Serif Display
-    font-family: 'Playfair Display', serif;
-    
-    // Ajustes para resaltar el estilo "Display"
-    font-weight: 700;
-    font-size: 1.4rem;
-    letter-spacing: 0.5px;
-    text-transform: capitalize; // O uppercase según prefieras
-  }
+ion-text {
+  // Aplicamos la fuente Serif Display
+  font-family: 'Playfair Display', serif;
+
+  // Ajustes para resaltar el estilo "Display"
+  font-weight: 700;
+  font-size: 1.4rem;
+  letter-spacing: 0.5px;
+  text-transform: capitalize; // O uppercase según prefieras
 }

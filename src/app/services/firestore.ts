@@ -394,7 +394,7 @@ export class FirestoreService {
   }
 
 
-  async updateUser(id: User['id'], user: User): Promise<void> {
+  async updateUser(id: User['id'], user: Partial<User>): Promise<void> {
 
     runInInjectionContext(this.injector, () => {
 
@@ -407,6 +407,16 @@ export class FirestoreService {
 
       const userDocRef = this.afs.doc<User>(`users/${id}`);
       userDocRef.update(userToSave);
+    });
+  }
+  async updateBarber(id: Barber['id'], barber: Barber): Promise<void> {
+
+    runInInjectionContext(this.injector, () => {
+
+      const barberToSave = { ...barber };
+
+      const userDocRef = this.afs.doc<Barber>(`barber/${id}`);
+      userDocRef.update(barberToSave);
     });
   }
   async updateAppointment(id: AppointmentModel['id'], appointment: AppointmentModel): Promise<void> {

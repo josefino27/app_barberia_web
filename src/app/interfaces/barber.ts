@@ -3,5 +3,7 @@ export interface Barber {
   id?: string,
   photoUrl?: string,
   status?: string,
-  userId?: string
+  userId?: string,
+  startTimePred?:number,
+  endTimePred?:number
 }

@@ -95,13 +95,18 @@
     </ion-item>
     <!-- Selector de Fecha para FILTRO DE LISTA -->
     <ion-item>
-      <ion-button slot="start" id="date" expand="block" >Filtrar Fecha</ion-button>
-      <ion-note slot="end" class="ion-padding-end">
+      <ion-button slot="start" id="date" expand="block" >
+        <ion-text>
+          Filtrar Fecha
+        </ion-text></ion-button>
+      <ion-text slot="end" class="ion-padding-end">
         {{ selectedDateValue === 'all' ? 'Todas las fechas' : (selectedDateValue | date: 'dd/MM/yyyy') }}
-      </ion-note>
+      </ion-text>
       <ion-button fill="clear" color="danger" (click)="clearDateFilter()">
         <ion-icon name="close-circle-outline" slot="start"></ion-icon>
-        Limpiar Filtro Fecha
+        <ion-text>
+          Limpiar Filtro Fecha
+        </ion-text>
       </ion-button>
     </ion-item>
   </ion-list>

@@ -10,7 +10,6 @@ import { combineLatest, firstValueFrom, map, Observable, shareReplay, startWith,
 import { User } from 'src/app/interfaces/user';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
 import { AuthService } from 'src/app/services/auth';
-import { Barber } from 'src/app/interfaces/barber';
 import { BarberScheduleModel } from 'src/app/interfaces/horarios';
 
 @Component({

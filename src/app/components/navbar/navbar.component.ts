@@ -32,6 +32,10 @@ export class NavbarComponent  implements OnInit {
     this.popover.isOpen = false;
     this.r.navigate(['appointment'], { replaceUrl: true });
   }
+  async goToUsuarios() {
+    this.popover.isOpen = false;
+    this.r.navigate(['usuarios'], { replaceUrl: true });
+  }
   async goToSchedule(id: User['id']) {
     this.popover.isOpen = false;
     this.r.navigate(['horarios'], { replaceUrl: true });
