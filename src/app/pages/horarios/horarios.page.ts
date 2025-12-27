@@ -90,7 +90,9 @@ export class HorariosPage implements OnInit {
   async loadSchedule() {
     if (!this.currentUser?.id) return;
     try {
-      this.allBarberSchedules = await this.firestoreService.getBarberSchedule(this.currentUser.id, '');
+      this.allBarberSchedules = await this.firestoreService.getBarberSchedule(this.currentUser.id, "");
+    // console.log("this.allBarberSchedules",this.allBarberSchedules);
+    // console.log("this.current.id",this.currentUser.id);
     } catch (error) {
       console.error("Error cargando horarios:", error);
     }
@@ -98,13 +100,19 @@ export class HorariosPage implements OnInit {
 
   onDaySelect(event: any) {
     this.selectedDayIndex = event.detail.value;
+    // console.log("this.selectedDayIndex",this.selectedDayIndex);
     this.updateFormForSelectedDay();
   }
 
   // BUSCA SI EL DÍA YA EXISTE EN LA DB Y CARGA LOS DATOS
   updateFormForSelectedDay() {
-    this.currentSchedule = this.allBarberSchedules.find(s => s.day === this.selectedDayIndex) || null;
-
+    this.currentSchedule = this.allBarberSchedules.find(s =>
+      s.day === this.selectedDayIndex
+      
+) || null;
+    // console.log("this.allBarberSchedules",this.allBarberSchedules);
+    // console.log("this.selectedDayIndex",this.selectedDayIndex);
+    // console.log("this.currentSchedule",this.currentSchedule);
     if (this.currentSchedule) {
       this.scheduleForm.patchValue({
         id: this.currentSchedule.id,

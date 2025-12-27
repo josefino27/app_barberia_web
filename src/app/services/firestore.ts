@@ -74,18 +74,19 @@ export class FirestoreService {
       try {
         // 1. Obtiene la referencia a la colección filtrada
         const schedulesCollection = this.afs.collection<BarberScheduleModel>(
-          this.dailySchedulesCollectionPath,
+          this.dailySchedulesCollectionPath,day===''?
           // Agrega el filtro WHERE
-          ref => ref.where('barberId', '==', barberId)
+          ref => ref.where('barberId', '==', barberId): ref => ref.where('barberId', '==', barberId)
             .where('day', '==', day)
         );
-
+              console.log("this.schedulesCollection",schedulesCollection);
         // 2. Ejecuta la consulta y espera el primer/único valor
         const snapshot = await firstValueFrom(schedulesCollection.get());
 
         // 3. Mapea los documentos, incluyendo el ID
         return snapshot.docs.map(doc => {
           const data = doc.data() as BarberScheduleModel;
+
           // Aquí puedes añadir la conversión de Timestamp si la propiedad 'day' lo fuera
           return { id: doc.id, ...data } as BarberScheduleModel;
         });
