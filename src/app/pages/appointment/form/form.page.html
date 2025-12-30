@@ -10,17 +10,22 @@
 </ion-header>
 
 <ion-content [fullscreen]="true">
-  <div *ngIf="isLoading && !appointmentForm.dirty" class="ion-text-center ion-padding">
-    <ion-spinner name="crescent"></ion-spinner>
-    <p>Cargando datos de la cita...</p>
-  </div>
-  <form [formGroup]="appointmentForm" (ngSubmit)="onSubmit()" *ngIf="!isLoading || appointmentForm.dirty">
+  @if(isLoading && !appointmentForm.dirty)
+  {
+    <ion-spinner name="crescent">
+      <p>Cargando datos de la cita...</p>
+    </ion-spinner>
+    
+  }
+
+  @if(!isLoading || appointmentForm.dirty){
+    <form [formGroup]="appointmentForm" (ngSubmit)="onSubmit()">
     <ion-item>
       <ion-select [label]="lbSelectBarber" label-placement="floating" class="formControl" cancelText="Cerrar"
         formControlName="barber">
         @for (barber of barbers$ | async; track barber.id) {
         <ion-select-option [value]="barber.id">
-          {{barber.name}}
+          {{barber.name | titlecase}}
         </ion-select-option>
         }
       </ion-select>
@@ -49,10 +54,10 @@
     @if(this.selectedBarber && this.serviceDuration && this.isViewingDate){
     <ion-item>
       <ion-datetime presentation="date" locale="es-ES" cancelText="Cancelar" formControlName="date"
-        (ionChange)="onDaySelected($event)"></ion-datetime>
+        (ionChange)="onDaySelected($event)">
+      </ion-datetime>
     </ion-item>
     }
-
     }
     @if (isViewingDispo) {
     <ion-item>
@@ -68,6 +73,7 @@
             <ion-label>{{ hour }}</ion-label>
           </ion-chip>
           }
+          <ion-chip (click)="backTime()" color="primary" class="ion-margin-bottom ion-margin-end">Atras</ion-chip>
         </ion-card-content>
       </ion-card>
     </ion-item>
@@ -107,4 +113,6 @@
         Cita</ion-button>
       }
   </form>
+  }
+  
 </ion-content>

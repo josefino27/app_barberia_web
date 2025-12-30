@@ -95,7 +95,7 @@
     </ion-item>
     <!-- Selector de Fecha para FILTRO DE LISTA -->
     <ion-item>
-      <ion-button slot="start" id="date" expand="block" >
+      <ion-button slot="start" id="date" expand="block">
         <ion-text>
           Filtrar Fecha
         </ion-text></ion-button>
@@ -110,55 +110,64 @@
       </ion-button>
     </ion-item>
   </ion-list>
-  <ion-popover trigger="date">
+  <!-- <ion-popover trigger="date">
     <ng-template>
       <ion-datetime 
       presentation="date" locale="es-ES" cancelText="Cancelar"
         doneText="Confirmar" (ionChange)="onDateChange($event)" showDefaultButtons="true"></ion-datetime>
     </ng-template>
-  </ion-popover>
+  </ion-popover> -->
 
   <!-- LISTA DE CITAS -->
-  <ion-list *ngIf="(filteredAppointments$ | async) as appointments; else loadingOrEmpty" lines="full">
+  @if (filteredAppointments$) {
 
-    <div *ngIf="appointments.length === 0 && !(isLoading)">
+  <ion-list lines="full">
+
       <ion-item lines="none">
         <ion-label class="ion-text-center">
           <h2>No hay citas agendadas que coincidan con los filtros.</h2>
           <p>Ajusta el nombre o la fecha.</p>
         </ion-label>
       </ion-item>
-    </div>
 
-    <ion-item-sliding *ngFor="let appointment of appointments">
 
-      <ion-item [routerLink]="['/appointment/form', appointment.id]" detail>
-        <ion-label>
-          <h2 class="fw-bold">{{ appointment.clientName }}</h2>
-          <p>Servicio: {{ appointment.service }}</p>
-          <p>Barbero: {{ appointment.barberName }}</p>
-          <p>Estado: {{ appointment.status }}</p>
-        </ion-label>
-        <p slot="end">
-          <!-- Muestra la fecha y hora de la cita -->
-          {{ appointment.date | date: 'dd/MM/yy hh:mm a' }}
-        </p>
-      </ion-item>
+      @for (appointment of filteredAppointments$ | async ; track appointment.id) {
 
-      <ion-item-options side="end">
-        <ion-item-option color="danger" (click)="deleteAppointment(appointment.id!)">
-          <ion-icon slot="icon-only" name="trash"></ion-icon>
-        </ion-item-option>
-      </ion-item-options>
-    </ion-item-sliding>
+        <ion-item-sliding>
+          <ion-item [routerLink]="['/appointment/form', appointment.id]" detail>
+            <ion-label>
+              <h2 class="fw-bold">{{ appointment.clientName }}</h2>
+              <p>Servicio: {{ appointment.service }}</p>
+              <p>Barbero: {{ appointment.barberName }}</p>
+              <p>Estado: {{ appointment.status }}</p>
+            </ion-label>
+            <p slot="end">
+              <!-- Muestra la fecha y hora de la cita -->
+              {{ appointment.date | date: 'dd/MM/yy hh:mm a' }}
+            </p>
+          </ion-item>
 
+          <ion-item-options side="end">
+            <ion-item-option color="danger" (click)="deleteAppointment(appointment.id!)">
+              <ion-icon slot="icon-only" name="trash"></ion-icon>
+            </ion-item-option>
+          </ion-item-options>
+      </ion-item-sliding>
+    }
+  
   </ion-list>
+
+  }
 
   <!-- Template para carga o lista vacía -->
   <ng-template #loadingOrEmpty>
-      <ion-spinner *ngIf="isLoading" name="crescent"></ion-spinner>
-      <ion-text *ngIf="!isLoading && searchTerm === '' && selectedBarberForSlots === 'all'">
-        <p>Aún no tienes citas agendadas.</p>
-      </ion-text>
+    @if(isLoading){
+      <ion-spinner name="crescent"></ion-spinner>
+    }
+    @if(!isLoading && searchTerm === '' && selectedBarberForSlots === 'all'){
+      <ion-text>
+      <p>Aún no tienes citas agendadas.</p>
+    </ion-text>
+    }
   </ng-template>
 </ion-content>

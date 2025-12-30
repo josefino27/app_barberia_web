@@ -11,13 +11,16 @@ import { User } from 'src/app/interfaces/user';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
 import { AuthService } from 'src/app/services/auth';
 import { BarberScheduleModel } from 'src/app/interfaces/horarios';
+import { MatTimepickerModule } from '@angular/material/timepicker';
+import { MatInputModule } from '@angular/material/input';
+import { MatFormFieldModule } from '@angular/material/form-field';
 
 @Component({
   selector: 'app-appointment-form',
   templateUrl: './form.page.html',
   styleUrls: ['./form.page.scss'],
   imports: [IonicModule, CommonModule, FormsModule,
-    ReactiveFormsModule,
+    ReactiveFormsModule, MatFormFieldModule, MatInputModule, MatTimepickerModule
   ]
 })
 export class AppointmentFormPage implements OnInit {
@@ -55,7 +58,7 @@ export class AppointmentFormPage implements OnInit {
   // selectedBarberSchedule: { days: number[], hours: string[] } | null = null;
   selectedBarberSchedule: BarberScheduleModel[] = [];
   isLoading: boolean = false;
-  lbSelectBarber:string= 'Selecciona un Barbero';
+  lbSelectBarber: string = 'Selecciona un Barbero';
   private serviceSubscription: Subscription | null | undefined = undefined;
   selectedBarber: string | null = null;
   public firestoreuser = this.afauth.getCurrentUser.name;
@@ -138,7 +141,7 @@ export class AppointmentFormPage implements OnInit {
       // 2. Transformar los datos de Firestore al formato que necesitamos
       // this.selectedBarberSchedule = this.transformSchedules(schedules);
 
-       console.log('onBarberChange | getBarberSchedule | Horario transformado:', this.selectedBarber);
+      console.log('onBarberChange | getBarberSchedule | Horario transformado:', this.selectedBarber);
 
     } catch (error) {
       console.error('Error al cargar y transformar horarios:', error);
@@ -205,8 +208,7 @@ export class AppointmentFormPage implements OnInit {
         .subscribe(async ([selectedService, selectedBarber, selectedDate]) => {
           // Guarda el barbero seleccionado
           this.selectedBarber = selectedBarber;
-          // Guarda la fecha seleccionada
-          this.selectedDate = selectedDate;
+
           // La duración del servicio se actualiza siempre, pero solo afecta al re-filtrado.
           const serviceKey = selectedService as keyof typeof this.serviceDurations;
           this.serviceDuration = this.serviceDurations[serviceKey] || 0;
@@ -240,17 +242,22 @@ export class AppointmentFormPage implements OnInit {
               this.isViewingDate = true;
 
             }
-            if (this.selectedDate) {
-              this.selectedDate = dateControl.value;
+            if (selectedDate) {
+              // Guarda la fecha seleccionada
+              this.selectedDate = new Date(selectedDate);
+              let day = this.selectedDate?.getDay();
+              console.log("this.day", day);
+              let dayToString = day?.toString();
+              console.log("this.dayToString", dayToString);
               // 1. Obtener los documentos de horario para este barbero
-              this.selectedBarberSchedule = await this.firestoreService.getBarberSchedule(selectedBarber, this.selectedDate!.toString().split('T')[0]);
-              // 2. Transformar los datos de Firestore al formato que necesitamos
-              //this.selectedBarberSchedule = this.transformSchedules(schedules);
-              //console.log('listenToFormChanges this.selectedBarberSchedule:', this.selectedBarberSchedule);
-              // Carga las horas disponibles del barbero.
-              // this.isViewingDate = false;
-              // this.isViewing = true;
-
+              this.selectedBarberSchedule = await this.firestoreService.getBarberSchedule(selectedBarber, dayToString);
+              // // 2. Transformar los datos de Firestore al formato que necesitamos
+              // //this.selectedBarberSchedule = this.transformSchedules(schedules);
+              // //console.log('listenToFormChanges this.selectedBarberSchedule:', this.selectedBarberSchedule);
+              // // Carga las horas disponibles del barbero.
+              // // this.isViewingDate = false;
+              // // this.isViewing = true;
+              console.log("this.selectedBarberSchedule ",this.selectedBarberSchedule);
               this.loadAvailableHours(this.selectedBarberSchedule);
 
               //console.log("listentoformchages combinedDate",this.selectedDate);
@@ -272,12 +279,12 @@ export class AppointmentFormPage implements OnInit {
       await loading.present();
       try {
         this.appointmentForm.patchValue({
-          barber:  this.user?.barberId,
+          barber: this.user?.barberId,
           clientName: this.user.name,
           clientEmail: this.user.email,
           clientPhone: this.user.phone!
         });
-        this.appointmentForm.get('barber')?.disable();
+        // this.appointmentForm.get('barber')?.disable();
         this.lbSelectBarber = 'Barbero';
       } catch (error) {
         console.error('Error al cargar datos del formulario:', error);
@@ -319,11 +326,17 @@ export class AppointmentFormPage implements OnInit {
     }
   }
 
-  onDaySelected(event: any) {
+  async onDaySelected(event: any) {
     const selectedDateStr = event.detail.value;
     //console.log("this.selectedDateStr ", selectedDateStr);
     this.selectedDate = new Date(selectedDateStr);
-    //console.log("this.selectedDate ", this.selectedDate);
+    let day = this.selectedDate.getDay();
+    let dayToString = day.toString();
+    console.log("this.selectedDate ", this.selectedDate.getDay());
+    this.selectedBarberSchedule = await this.firestoreService.getBarberSchedule(this.selectedBarber!, dayToString);
+    //console.log("this.selectedBarber ", this.selectedBarber);
+    //console.log("this.selectedBarberSchedule ", this.selectedBarberSchedule);
+    //  this.loadAvailableHours(this.selectedBarberSchedule);
     this.selectedHour = null;
     this.isViewingDate = false;
     this.isViewingDispo = true;
@@ -339,6 +352,15 @@ export class AppointmentFormPage implements OnInit {
     this.isViewing = false;
     this.isSelectDisabled = false;
     this.appointmentForm.get('barber')?.enable();
+  }
+  
+  backTime(){
+    this.isViewingDispo = false;
+    this.isViewingDate = true;
+    this.selectedHour = null;
+    this.appointmentForm.patchValue({ date: null });
+    this.isViewing = false;
+    this.isSelectDisabled = false;
   }
 
   /**
@@ -436,22 +458,26 @@ export class AppointmentFormPage implements OnInit {
     // console.log("this.endMin ", this.endMin);
     let breakStartMinutes = 0;
     let breakEndMinutes = 0;
-    // const breakStart = barberSchedule.map(
-    //   end => {
-    //     return this.timeToMinutes(end.breakStart!);
-    //   }
-    // )
-    // const breakEnd = barberSchedule.map(
-    //   end => {
-    //     return this.timeToMinutes(end.breakEnd!);
-    //   }
-    // )
+    const breakStart = barberSchedule.map(
+      end => {
+        breakStartMinutes = this.timeToMinutes(end.breakStart!);
+        return breakStartMinutes;
+      }
+    )
+    const breakEnd = barberSchedule.map(
+      end => {
+        
+        breakEndMinutes = this.timeToMinutes(end.breakEnd!);
+        return breakEndMinutes;
+      }
+    )
 
     // if (breakStart && breakEnd) {
     //   breakStartMinutes = this.timeToMinutes(breakStart.toString());
     //   breakEndMinutes = this.timeToMinutes(breakEnd.toString());
     // }
-
+    console.log("breakStart", breakStart);
+    console.log("breakEnd", breakEnd);
     const potentialHours: string[] = [];
 
     // Paso 2: Generar todos los slots de tiempo y filtrar por disponibilidad (incluyendo la duración)
@@ -460,15 +486,15 @@ export class AppointmentFormPage implements OnInit {
       const slotEndMinutes = time + this.serviceDuration;
 
       // A. Filtro por Horario de Pausa
-      // let isInBreak = false;
-      // if (breakStartMinutes < breakEndMinutes) {
-      //   // El slot entra en conflicto con la pausa si se superpone
-      //   isInBreak = slotStartMinutes < breakEndMinutes && slotEndMinutes > breakStartMinutes;
-      // }
+      let isInBreak = false;
+      if (breakStartMinutes < breakEndMinutes) {
+        // El slot entra en conflicto con la pausa si se superpone
+        isInBreak = slotStartMinutes < breakEndMinutes && slotEndMinutes > breakStartMinutes;
+      }
 
-      // if (isInBreak) {
-      //   continue; // Saltar slots que caen en la pausa
-      // }
+      if (isInBreak) {
+        continue; // Saltar slots que caen en la pausa
+      }
 
       // console.log(" slotStartMinutes", slotStartMinutes);
       // console.log("slotEndMinutes ", slotEndMinutes);
@@ -533,7 +559,7 @@ export class AppointmentFormPage implements OnInit {
         this.appointmentForm.reset();
         this.resetSelection();
         this.appointmentForm.patchValue({ date: null });
-        this.router.navigateByUrl('/appointment', {replaceUrl: true});
+        this.router.navigateByUrl('/appointment', { replaceUrl: true });
       }
     } catch (error) {
       console.error('Error al guardar la cita:', error);

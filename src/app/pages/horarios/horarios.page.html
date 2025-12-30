@@ -1,9 +1,9 @@
 <app-navbar></app-navbar>
 
 <ion-content class="ion-padding">
-  <ion-list lines="none">
+  <!-- <ion-list lines="none">
     <ion-list-header>
-      <ion-label color="primary"><h2>Configuración de Perfil</h2></ion-label>
+      <ion-label color="primary"><h2>Configuración de Horario sin Asignción</h2></ion-label>
     </ion-list-header>
     
     <form [formGroup]="timeForm">
@@ -27,17 +27,20 @@
     </form>
     
     <ion-button expand="block" (click)="onDateTime()" fill="clear">
-      Actualizar Perfil de Usuario
+      Actualizar Horario por Defecto
     </ion-button>
-  </ion-list>
+  </ion-list> -->
 
   <ion-item-divider mode="md"></ion-item-divider>
 
   <ion-list-header class="ion-margin-top">
-    <ion-label color="primary"><h2>Plantilla Semanal de Citas</h2></ion-label>
+    <ion-label color="primary">
+      <h2>Plantilla Semanal de Citas</h2>
+    </ion-label>
   </ion-list-header>
 
-  <ion-segment [value]="selectedDayIndex" (ionChange)="onDaySelect($event)" scrollable="true" mode="md" class="ion-margin-bottom">
+  <ion-segment [value]="selectedDayIndex" (ionChange)="onDaySelect($event)" scrollable="true" mode="md"
+    class="ion-margin-bottom">
     <ion-segment-button *ngFor="let day of weekDays" [value]="day.id">
       <ion-label>{{ day.name.substring(0,3) }}</ion-label>
     </ion-segment-button>
@@ -58,20 +61,31 @@
           </ion-toggle>
         </ion-item>
 
-        <ng-container *ngIf="scheduleForm.get('isWorking')?.value">
+        @if(scheduleForm.get('isWorking')?.value){
+
+        <ng-container>
           <ion-grid>
             <ion-row>
               <ion-col size="6">
                 <ion-item lines="none">
                   <ion-select label="Entrada" labelPlacement="floating" formControlName="start">
-                    <ion-select-option *ngFor="let h of hours" [value]="h">{{ h }}</ion-select-option>
+                    @for(h of hours; track h){
+
+                    <ion-select-option [value]="h">{{ h }}</ion-select-option>
+
+                    }
+
                   </ion-select>
                 </ion-item>
               </ion-col>
               <ion-col size="6">
                 <ion-item lines="none">
                   <ion-select label="Salida" labelPlacement="floating" formControlName="end">
-                    <ion-select-option *ngFor="let h of hours" [value]="h">{{ h }}</ion-select-option>
+                    @for( h of hours; track h){
+                    <ion-select-option [value]="h">{{ h }}</ion-select-option>
+
+                    }
+
                   </ion-select>
                 </ion-item>
               </ion-col>
@@ -82,25 +96,39 @@
             <ion-toggle formControlName="hasBreak" justify="space-between">¿Tiene Almuerzo/Pausa?</ion-toggle>
           </ion-item>
 
-          <ion-grid *ngIf="scheduleForm.get('hasBreak')?.value">
+          @if(scheduleForm.get('hasBreak')?.value){
+          <ion-grid>
             <ion-row>
               <ion-col size="6">
                 <ion-item lines="none">
                   <ion-select label="Inicia" labelPlacement="floating" formControlName="breakStart">
-                    <ion-select-option *ngFor="let h of hours" [value]="h">{{ h }}</ion-select-option>
+                    @for(h of hours; track h){
+                    <ion-select-option [value]="h">{{ h }}</ion-select-option>
+                    }
+
                   </ion-select>
                 </ion-item>
               </ion-col>
               <ion-col size="6">
                 <ion-item lines="none">
                   <ion-select label="Termina" labelPlacement="floating" formControlName="breakEnd">
-                    <ion-select-option *ngFor="let h of hours" [value]="h">{{ h }}</ion-select-option>
+                    @for(h of hours; track h){
+                    <ion-select-option [value]="h">{{ h }}</ion-select-option>
+                    }
+
                   </ion-select>
                 </ion-item>
               </ion-col>
             </ion-row>
           </ion-grid>
+
+          }
+
         </ng-container>
+
+        }
+
+
       </ion-list>
     </form>
   </ion-card>
@@ -110,7 +138,8 @@
     Guardar Plantilla
   </ion-button>
 
-  <ion-button expand="block" color="danger" fill="clear" (click)="clearSchedule()" [disabled]="!currentSchedule || isSaving">
+  <ion-button expand="block" color="danger" fill="clear" (click)="clearSchedule()"
+    [disabled]="!currentSchedule || isSaving">
     Resetear día a "Cerrado"
   </ion-button>
 </ion-content>

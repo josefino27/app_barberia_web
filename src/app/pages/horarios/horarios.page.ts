@@ -44,7 +44,7 @@ export class HorariosPage implements OnInit {
   selectedDayIndex: string = new Date().getDay().toString();
   scheduleForm!: FormGroup;
   timeForm!: FormGroup;
-  hours: string[] = Array.from({ length: 14 }, (_, i) => `${String(i + 8).padStart(2, '0')}:00`);
+  hours: string[] = Array.from({ length: 24 }, (_, i) => `${String(i + 0).padStart(2, '0')}:00`);
 
   isSaving = false;
 
@@ -206,9 +206,9 @@ export class HorariosPage implements OnInit {
         startTimePred: start.getHours() * 60 + start.getMinutes(),
         endTimePred: end.getHours() * 60 + end.getMinutes()
       });
-      this.presentAlert('Perfil Actualizado', 'El horario base se ha guardado correctamente.');
+      this.presentAlert('Horario Actualizado', 'El horario base se ha guardado correctamente.');
     } catch (e) {
-      this.presentAlert('Error', 'No se pudo actualizar el perfil.');
+      this.presentAlert('Error', 'No se pudo actualizar el horario.');
     }
   }
 
