@@ -9,8 +9,8 @@
       @if (isAuthenticated){
       <ion-button fill="clear" aria-label="User profile" (click)="presentPopover($event)" slot="end">
         <ion-avatar>
-          <img [src]="isAuthenticated.photoUrl || './assets/icon/default_avatar.jpg'"
-                loading="lazy" alt="./assets/icon/default_avatar.jpg" >
+          <img [src]="isAuthenticated.photoUrl || './assets/icon/default_avatar.jpg'" loading="lazy"
+            alt="Avatar..." width="800" height="600" style="background: #f0f0f0;">
         </ion-avatar>
       </ion-button>
       <ion-popover #popover [isOpen]="isOpen" (didDismiss)="isOpen = false">
@@ -25,8 +25,7 @@
               @if (isAuthenticated.role=="super_admin") {
               <ion-row>
                 <ion-col>
-                  <ion-button fill="outline" expand="full"
-                    (click)="goToUsuarios()">Usuarios</ion-button>
+                  <ion-button fill="outline" expand="full" (click)="goToUsuarios()">Usuarios</ion-button>
                 </ion-col>
               </ion-row>
               }

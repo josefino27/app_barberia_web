@@ -54,7 +54,7 @@
     @if(this.selectedBarber && this.serviceDuration && this.isViewingDate){
     <ion-item>
       <ion-datetime presentation="date" locale="es-ES" cancelText="Cancelar" formControlName="date"
-        (ionChange)="onDaySelected($event)">
+        (ionChange)="onDaySelected($event)" [isDateEnabled]="isWeekday">
       </ion-datetime>
     </ion-item>
     }

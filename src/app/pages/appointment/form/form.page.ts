@@ -36,6 +36,7 @@ export class AppointmentFormPage implements OnInit {
   errorMessage: string | null = null;
   barbero: string | undefined = undefined;
   days: { label: string, date: Date }[] = [];
+  day:number[]=[];
   availableHours: string[] = [];
   selectedDate: Date | null = null;
   selectedHour: string | null = null;
@@ -142,7 +143,10 @@ export class AppointmentFormPage implements OnInit {
       // this.selectedBarberSchedule = this.transformSchedules(schedules);
 
       console.log('onBarberChange | getBarberSchedule | Horario transformado:', this.selectedBarber);
-
+       this.selectedBarberSchedule = await this.firestoreService.getAllBarberSchedule(this.selectedBarber!);
+       this.day = this.selectedBarberSchedule.map(d => Number(d.day));
+      console.log("this.days ",this.day);
+    //           console.log("this.selectedBarberSchedule ",this.selectedBarberSchedule);
     } catch (error) {
       console.error('Error al cargar y transformar horarios:', error);
       this.errorMessage = 'No se pudo cargar el horario del barbero.';
@@ -240,6 +244,7 @@ export class AppointmentFormPage implements OnInit {
 
             if (this.serviceDuration && this.selectedBarber) {
               this.isViewingDate = true;
+              
 
             }
             if (selectedDate) {
@@ -342,6 +347,23 @@ export class AppointmentFormPage implements OnInit {
     this.isViewingDispo = true;
     // this.loadAvailableHours();
   }
+
+    isWeekday = (dateString: string) => {
+
+    const date = new Date(dateString);
+    const utcDay = date.getDay();
+    const daysAvailables = this.day;
+    // this.selectedBarberSchedule = await this.firestoreService.getAllBarberSchedule(this.selectedBarber!);
+    //           let days = this.selectedBarberSchedule.map(d => d.day);
+    //           console.log("this.days ",days);
+    //           console.log("this.selectedBarberSchedule ",this.selectedBarberSchedule);
+    console.log("dateString",dateString);
+    console.log("date",date);
+    console.log("utc day",utcDay);
+    console.log("daysAvailables ",daysAvailables);
+    
+    return daysAvailables.includes(utcDay);
+  };
 
   resetSelection() {
     this.selectedDate = null;
